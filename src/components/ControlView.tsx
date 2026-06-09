@@ -65,6 +65,44 @@ export default function ControlView({
     }
   }, [initialDuration, mode, isRunning]);
 
+  // Operator Vibration Trigger
+  useEffect(() => {
+    if (!isRunning || !('vibrate' in navigator)) return;
+
+    let remains30s = false;
+    let ended = false;
+
+    if (mode === 'regressive') {
+      if (currentTime === 30) {
+        remains30s = true;
+      } else if (currentTime === 0) {
+        ended = true;
+      }
+    } else {
+      // progressive mode is counting up to initialDuration
+      const diff = initialDuration - currentTime;
+      if (diff === 30) {
+        remains30s = true;
+      } else if (diff === 0) {
+        ended = true;
+      }
+    }
+
+    if (remains30s) {
+      try {
+        navigator.vibrate(200); // vibrate briefly (200ms)
+      } catch (err) {
+        console.warn('Vibration failed', err);
+      }
+    } else if (ended) {
+      try {
+        navigator.vibrate([400, 200, 400]); // vibrate twice/stronger upon completion
+      } catch (err) {
+        console.warn('Vibration failed', err);
+      }
+    }
+  }, [currentTime, isRunning, mode, initialDuration]);
+
   // Adjust inputs helpers
   const adjustMinutes = (amount: number) => {
     setLocalMinutes((prev) => Math.min(599, Math.max(0, prev + amount)));
@@ -425,7 +463,7 @@ export default function ControlView({
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide ${statusBadge}`}>
                               {item.status === 'completed' && '✓ Concluído'}
                               {item.status === 'active' && '► Em andamento'}
-                              {item.status === 'pending' && (isNext ? 'Próximo' : 'Aguardando')}
+                              {item.status === 'pending' && (isNext ? '⏳ Próximo' : 'Aguardando')}
                             </span>
                             <span className="text-xs font-mono text-indigo-400 font-semibold bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-900/10">
                               Previsto: {Math.floor(item.expectedTime / 60)} min
@@ -437,6 +475,9 @@ export default function ControlView({
                             )}
                           </div>
                           <div className="text-sm font-semibold text-white">
+                            {item.status === 'completed' && <span className="text-emerald-400 mr-1.5 font-bold">✓</span>}
+                            {item.status === 'active' && <span className="text-blue-400 mr-1.5 font-bold">►</span>}
+                            {isNext && <span className="text-amber-500 mr-1.5 font-bold">⏳</span>}
                             {item.name} <span className="text-xs text-slate-400 font-medium">| {item.partType}</span>
                           </div>
                         </div>

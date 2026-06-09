@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { TimerState, TimerMode } from '../types';
+import { TimerState, TimerMode, ScheduleItem } from '../types';
 
 export function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
@@ -8,8 +8,11 @@ export function useSocket() {
     isRunning: false,
     mode: 'regressive',
     initialDuration: 300,
-    currentTime: 300,
+    currentTime: 350,
     lastUpdated: Date.now(),
+    schedule: [],
+    activeId: null,
+    elapsedTime: 0,
   });
 
   const socketRef = useRef<Socket | null>(null);
@@ -63,6 +66,35 @@ export function useSocket() {
     socketRef.current?.emit('timer:set', { minutes, seconds, mode });
   }, []);
 
+  // Schedule Management APIs
+  const addScheduleItem = useCallback((name: string, partType: string, expectedTime: number) => {
+    socketRef.current?.emit('schedule:add', { name, partType, expectedTime });
+  }, []);
+
+  const editScheduleItem = useCallback((item: ScheduleItem) => {
+    socketRef.current?.emit('schedule:edit', item);
+  }, []);
+
+  const removeScheduleItem = useCallback((id: string) => {
+    socketRef.current?.emit('schedule:remove', id);
+  }, []);
+
+  const reorderSchedule = useCallback((newList: ScheduleItem[]) => {
+    socketRef.current?.emit('schedule:reorder', newList);
+  }, []);
+
+  const activateScheduleItem = useCallback((id: string) => {
+    socketRef.current?.emit('schedule:activate', id);
+  }, []);
+
+  const completeScheduleItem = useCallback((id: string) => {
+    socketRef.current?.emit('schedule:complete', id);
+  }, []);
+
+  const resetSchedule = useCallback(() => {
+    socketRef.current?.emit('schedule:reset');
+  }, []);
+
   return {
     isConnected,
     timerState,
@@ -71,5 +103,13 @@ export function useSocket() {
     resumeTimer,
     resetTimer,
     setTimer,
+    addScheduleItem,
+    editScheduleItem,
+    removeScheduleItem,
+    reorderSchedule,
+    activateScheduleItem,
+    completeScheduleItem,
+    resetSchedule,
   };
 }
+

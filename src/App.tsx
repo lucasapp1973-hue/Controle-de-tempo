@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop } from 'lucide-react';
+import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSocket } from './hooks/useSocket';
 import DisplayView from './components/DisplayView';
 import ControlView from './components/ControlView';
+import SuperintendentView from './components/SuperintendentView';
 
 export default function App() {
   const {
@@ -14,22 +15,29 @@ export default function App() {
     resumeTimer,
     resetTimer,
     setTimer,
+    addScheduleItem,
+    editScheduleItem,
+    removeScheduleItem,
+    reorderSchedule,
+    activateScheduleItem,
+    completeScheduleItem,
+    resetSchedule,
   } = useSocket();
 
-  // App mode: portal (selection), display, or control
-  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control'>('portal');
+  // App mode: portal (selection), display, control, or superintendent
+  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent'>('portal');
 
   // Handle initial routing via URL search params (e.g., ?mode=display)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const modeParam = params.get('mode');
-    if (modeParam === 'display' || modeParam === 'control') {
-      setAppMode(modeParam);
+    if (modeParam === 'display' || modeParam === 'control' || modeParam === 'superintendent') {
+      setAppMode(modeParam as any);
     }
   }, []);
 
   // Update URL on state change to allow direct bookmarking
-  const selectMode = (mode: 'display' | 'control') => {
+  const selectMode = (mode: 'display' | 'control' | 'superintendent') => {
     setAppMode(mode);
     const url = new URL(window.location.href);
     url.searchParams.set('mode', mode);
@@ -79,6 +87,31 @@ export default function App() {
           resumeTimer={resumeTimer}
           resetTimer={resetTimer}
           setTimer={setTimer}
+          addScheduleItem={addScheduleItem}
+          editScheduleItem={editScheduleItem}
+          removeScheduleItem={removeScheduleItem}
+          reorderSchedule={reorderSchedule}
+          activateScheduleItem={activateScheduleItem}
+          completeScheduleItem={completeScheduleItem}
+          resetSchedule={resetSchedule}
+        />
+      </motion.div>
+    );
+  }
+
+  // Render Superintendent View
+  if (appMode === 'superintendent') {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <SuperintendentView
+          timerState={timerState}
+          isConnected={isConnected}
+          onBack={handleBackToPortal}
         />
       </motion.div>
     );
@@ -147,13 +180,13 @@ export default function App() {
         </motion.div>
 
         {/* Portal Options Section */}
-        <section className="grid sm:grid-cols-2 gap-6 w-full max-w-3xl mx-auto">
+        <section className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
           
           {/* Card 1: Display */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
             onClick={() => selectMode('display')}
             className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-emerald-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
           >
@@ -162,8 +195,8 @@ export default function App() {
                 <Tv className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors">
-                  1. MONITOR DE EXIBIÇÃO
+                <h2 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors uppercase">
+                  1. Display
                 </h2>
                 <p className="text-sm text-slate-400 mt-2 leading-relaxed">
                   Mostra o cronômetro com números extremamente gigantes em tela cheia. Perfeito para projetores de estúdio, TV ou tablets suspensos na parede.
@@ -178,9 +211,9 @@ export default function App() {
 
           {/* Card 2: Control */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5, duration: 0.5 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
             onClick={() => selectMode('control')}
             className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
           >
@@ -189,16 +222,43 @@ export default function App() {
                 <Smartphone className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors">
-                  2. PAINEL DE CONTROLE
+                <h2 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors uppercase">
+                  2. Controle
                 </h2>
                 <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                  Configure minutos/segundos, troque o sentido do tempo e comande o cronômetro do display do seu smartphone, PC ou tablet de controle.
+                  Cadastre participantes, reordene-os e controle o cronômetro em tempo real do seu smartphone, PC ou tablet de controle.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
               <span>Abrir Controle</span>
+              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            </div>
+          </motion.div>
+
+          {/* Card 3: Superintendent */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.6, duration: 0.4 }}
+            onClick={() => selectMode('superintendent')}
+            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
+          >
+            <div className="space-y-4">
+              <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
+                <ClipboardList className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors uppercase">
+                  3. Superintendente
+                </h2>
+                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                  Acompanhe a reunião, partes, alertas visuais, estourou de tempo e o histórico consolidado com as diferenças em tempo real (Leitura-Única).
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
+              <span>Abrir Supervisão</span>
               <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
             </div>
           </motion.div>

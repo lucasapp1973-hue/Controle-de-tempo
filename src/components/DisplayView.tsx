@@ -79,10 +79,7 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
     return `${pad(mins)}:${pad(secs)}`;
   };
 
-  // Background color mapping:
-  // - Verde durante tempo normal (> 30s se regressive, ou restando > 30s se progressive).
-  // - Amarelo quando restarem <= 30 segundos (e > 0s).
-  // - Vermelho quando o tempo terminar (<= 0s se regressive, ou >= initialDuration se progressive).
+  // Progressive / Regressive Mapping
   let bgColorClass = 'bg-emerald-600';
   let statusText = 'TEMPO NORMAL';
 
@@ -105,6 +102,8 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
       statusText = 'ATENÇÃO: QUASE CONCLUÍDO';
     }
   }
+
+  const activeItem = timerState.schedule?.find(item => item.id === timerState.activeId);
 
   return (
     <div
@@ -155,9 +154,19 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
       {/* Main Timer Display */}
       <div className="flex flex-col items-center justify-center text-center px-4 w-full z-10 select-none">
         {/* Status label displaying context */}
-        <p className="text-white/70 font-semibold tracking-widest text-lg sm:text-2xl uppercase mb-2">
+        <p className="text-white/70 font-semibold tracking-widest text-lg sm:text-2xl uppercase mb-1">
           {statusText}
         </p>
+
+        {/* Active Participant details - Large and clean */}
+        {activeItem && (
+          <div className="mb-2 text-white/95 text-2xl sm:text-4xl font-bold tracking-wide drop-shadow-md">
+            {activeItem.name}
+            <span className="block text-white/70 font-medium text-lg sm:text-2xl mt-1">
+              Part: {activeItem.partType}
+            </span>
+          </div>
+        )}
 
         {/* Huge glowing numbers */}
         <div 

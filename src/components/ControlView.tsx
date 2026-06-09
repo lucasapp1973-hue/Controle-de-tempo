@@ -245,11 +245,11 @@ export default function ControlView({
             </div>
           </div>
 
-          {/* Preset Selection Buttons (1, 3, 4, 5, 10 min) */}
+          {/* Preset Selection Buttons (2, 3, 4, 5, 6, 7, 8, 10, 15, 30 min) */}
           <div className="space-y-2">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Configurações Rápidas</span>
             <div className="grid grid-cols-5 gap-1.5">
-              {[1, 3, 4, 5, 10].map((mins) => (
+              {[2, 3, 4, 5, 6, 7, 8, 10, 15, 30].map((mins) => (
                 <button
                   key={mins}
                   type="button"

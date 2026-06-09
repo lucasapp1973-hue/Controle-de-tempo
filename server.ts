@@ -167,14 +167,14 @@ async function setupVite() {
   const distPath = path.join(process.cwd(), 'dist');
   const hasDist = fs.existsSync(path.join(distPath, 'index.html'));
 
-  if (process.env.NODE_ENV === 'production' && hasDist) {
-    console.log('Production mode: Serving static files from', distPath);
+  if (hasDist) {
+    console.log('Serving static files from', distPath);
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   } else {
-    console.log('Development/Fallback mode: Using Vite dev server middleware');
+    console.log('Development mode: Using Vite dev server middleware');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'custom',

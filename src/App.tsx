@@ -66,12 +66,13 @@ export default function App() {
     }
   };
 
-  // Handle initial routing via URL search params
+  // Always start at portal on initial load and clear any mode query param to ensure fresh start
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const modeParam = params.get('mode');
-    if (modeParam === 'display' || modeParam === 'control' || modeParam === 'superintendent' || modeParam === 'history') {
-      setAppMode(modeParam as any);
+    setAppMode('portal');
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('mode')) {
+      url.searchParams.delete('mode');
+      window.history.replaceState({}, '', url.toString());
     }
   }, []);
 

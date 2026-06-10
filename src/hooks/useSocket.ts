@@ -4,15 +4,17 @@ import { TimerState, TimerMode, ScheduleItem } from '../types';
 
 export function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [timerState, setTimerState] = useState<TimerState>({
     isRunning: false,
     mode: 'regressive',
     initialDuration: 300,
-    currentTime: 350,
+    currentTime: 300,
     lastUpdated: Date.now(),
     schedule: [],
     activeId: null,
     elapsedTime: 0,
+    meetings: [],
   });
 
   const socketRef = useRef<Socket | null>(null);
@@ -29,6 +31,7 @@ export function useSocket() {
 
     socket.on('connect', () => {
       setIsConnected(true);
+      setIsReconnecting(false);
       // Fetch latest state upon connection
       socket.emit('timer:sync');
     });
@@ -44,6 +47,20 @@ export function useSocket() {
     return () => {
       socket.disconnect();
     };
+  }, []);
+
+  const reconnect = useCallback(() => {
+    if (socketRef.current) {
+      setIsReconnecting(true);
+      socketRef.current.disconnect();
+      setTimeout(() => {
+        socketRef.current?.connect();
+        // Fallback safety to reset isReconnecting state if network takes time
+        setTimeout(() => {
+          setIsReconnecting(false);
+        }, 1200);
+      }, 400);
+    }
   }, []);
 
   const startTimer = useCallback(() => {
@@ -95,8 +112,22 @@ export function useSocket() {
     socketRef.current?.emit('schedule:reset');
   }, []);
 
+  const registerMeeting = useCallback((title: string) => {
+    socketRef.current?.emit('meeting:register', { title });
+  }, []);
+
+  const deleteMeeting = useCallback((id: string) => {
+    socketRef.current?.emit('meeting:delete', { id });
+  }, []);
+
+  const clearAllMeetings = useCallback(() => {
+    socketRef.current?.emit('meetings:clear');
+  }, []);
+
   return {
     isConnected,
+    isReconnecting,
+    reconnect,
     timerState,
     startTimer,
     pauseTimer,
@@ -110,6 +141,9 @@ export function useSocket() {
     activateScheduleItem,
     completeScheduleItem,
     resetSchedule,
+    registerMeeting,
+    deleteMeeting,
+    clearAllMeetings,
   };
 }
 

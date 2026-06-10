@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList } from 'lucide-react';
+import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSocket } from './hooks/useSocket';
 import DisplayView from './components/DisplayView';
 import ControlView from './components/ControlView';
 import SuperintendentView from './components/SuperintendentView';
+import HistoryView from './components/HistoryView';
 
 export default function App() {
   const {
     isConnected,
+    isReconnecting,
+    reconnect,
     timerState,
     startTimer,
     pauseTimer,
@@ -22,22 +25,25 @@ export default function App() {
     activateScheduleItem,
     completeScheduleItem,
     resetSchedule,
+    registerMeeting,
+    deleteMeeting,
+    clearAllMeetings,
   } = useSocket();
 
-  // App mode: portal (selection), display, control, or superintendent
-  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent'>('portal');
+  // App mode: portal (selection), display, control, superintendent (presidente), or history
+  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent' | 'history'>('portal');
 
-  // Handle initial routing via URL search params (e.g., ?mode=display)
+  // Handle initial routing via URL search params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const modeParam = params.get('mode');
-    if (modeParam === 'display' || modeParam === 'control' || modeParam === 'superintendent') {
+    if (modeParam === 'display' || modeParam === 'control' || modeParam === 'superintendent' || modeParam === 'history') {
       setAppMode(modeParam as any);
     }
   }, []);
 
   // Update URL on state change to allow direct bookmarking
-  const selectMode = (mode: 'display' | 'control' | 'superintendent') => {
+  const selectMode = (mode: 'display' | 'control' | 'superintendent' | 'history') => {
     setAppMode(mode);
     const url = new URL(window.location.href);
     url.searchParams.set('mode', mode);
@@ -81,6 +87,9 @@ export default function App() {
         <ControlView
           timerState={timerState}
           isConnected={isConnected}
+          isReconnecting={isReconnecting}
+          reconnect={reconnect}
+          registerMeeting={registerMeeting}
           onBack={handleBackToPortal}
           startTimer={startTimer}
           pauseTimer={pauseTimer}
@@ -99,7 +108,7 @@ export default function App() {
     );
   }
 
-  // Render Superintendent View
+  // Render Superintendent View (Presidente)
   if (appMode === 'superintendent') {
     return (
       <motion.div
@@ -112,6 +121,26 @@ export default function App() {
           timerState={timerState}
           isConnected={isConnected}
           onBack={handleBackToPortal}
+        />
+      </motion.div>
+    );
+  }
+
+  // Render History View
+  if (appMode === 'history') {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <HistoryView
+          timerState={timerState}
+          isConnected={isConnected}
+          onBack={handleBackToPortal}
+          deleteMeeting={deleteMeeting}
+          clearAllMeetings={clearAllMeetings}
         />
       </motion.div>
     );
@@ -180,12 +209,12 @@ export default function App() {
         </motion.div>
 
         {/* Portal Options Section */}
-        <section className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 w-full max-w-4xl mx-auto">
+        <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-5xl mx-auto">
           
           {/* Card 1: Display */}
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.4, duration: 0.4 }}
             onClick={() => selectMode('display')}
             className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-emerald-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
@@ -195,10 +224,10 @@ export default function App() {
                 <Tv className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white group-hover:text-emerald-400 transition-colors uppercase">
+                <h2 className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors uppercase">
                   1. Display
                 </h2>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
                   Mostra o cronômetro com números extremamente gigantes em tela cheia. Perfeito para projetores de estúdio, TV ou tablets suspensos na parede.
                 </p>
               </div>
@@ -211,9 +240,9 @@ export default function App() {
 
           {/* Card 2: Control */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.45, duration: 0.4 }}
             onClick={() => selectMode('control')}
             className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
           >
@@ -222,10 +251,10 @@ export default function App() {
                 <Smartphone className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors uppercase">
+                <h2 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
                   2. Controle
                 </h2>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
                   Cadastre participantes, reordene-os e controle o cronômetro em tempo real do seu smartphone, PC ou tablet de controle.
                 </p>
               </div>
@@ -236,11 +265,11 @@ export default function App() {
             </div>
           </motion.div>
 
-          {/* Card 3: Superintendent */}
+          {/* Card 3: Presidente */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.6, duration: 0.4 }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
             onClick={() => selectMode('superintendent')}
             className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
           >
@@ -249,16 +278,43 @@ export default function App() {
                 <ClipboardList className="w-6 h-6" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white group-hover:text-indigo-400 transition-colors uppercase">
-                  3. Superintendente
+                <h2 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
+                  3. Presidente
                 </h2>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                  Acompanhe a reunião, partes, alertas visuais, estourou de tempo e o histórico consolidado com as diferenças em tempo real (Leitura-Única).
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Acompanhe a parte ativa em tempo real com cronômetro grande, ou visualize imediatamente os resultados consolidados assim que concluídas.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
-              <span>Abrir Supervisão</span>
+              <span>Abrir Painel</span>
+              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            </div>
+          </motion.div>
+
+          {/* Card 4: Historico */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.55, duration: 0.4 }}
+            onClick={() => selectMode('history')}
+            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
+          >
+            <div className="space-y-4">
+              <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
+                  4. Histórico
+                </h2>
+                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Consulte todas as reuniões já realizadas com os indicadores estatísticos detalhados de cada orador e tabelas com cores dinâmicas.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
+              <span>Abrir Histórico</span>
               <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
             </div>
           </motion.div>

@@ -9,6 +9,13 @@ export interface ScheduleItem {
   completedTime?: number | null; // in seconds actually taken
 }
 
+export interface CompletedMeeting {
+  id: string;
+  date: string; // e.g. "2026-06-10"
+  title: string;
+  schedule: ScheduleItem[];
+}
+
 export interface TimerState {
   isRunning: boolean;
   mode: TimerMode;
@@ -18,6 +25,7 @@ export interface TimerState {
   schedule: ScheduleItem[];
   activeId: string | null; // ID of the currently active schedule participant
   elapsedTime: number; // actual seconds spent on the current active participant
+  meetings?: CompletedMeeting[];
 }
 
 export interface TimerConfig {

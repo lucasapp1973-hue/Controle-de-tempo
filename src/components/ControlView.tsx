@@ -1,10 +1,13 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, ArrowLeft, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 
 interface ControlViewProps {
   timerState: TimerState;
   isConnected: boolean;
+  isReconnecting?: boolean;
+  reconnect?: () => void;
+  registerMeeting?: (title: string) => void;
   onBack: () => void;
   startTimer: () => void;
   pauseTimer: () => void;
@@ -23,6 +26,9 @@ interface ControlViewProps {
 export default function ControlView({
   timerState,
   isConnected,
+  isReconnecting = false,
+  reconnect,
+  registerMeeting,
   onBack,
   startTimer,
   pauseTimer,
@@ -37,6 +43,42 @@ export default function ControlView({
   resetSchedule,
 }: ControlViewProps) {
   const { isRunning, mode, currentTime, initialDuration, schedule = [], activeId, elapsedTime } = timerState;
+
+  // Calculate stopwatch card coloring matching the exact Display rules
+  let cardBgClass = 'bg-slate-950/20 border-slate-800';
+  let cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+  let cardStateLabel = '🟢 Tempo Normal';
+
+  if (mode === 'regressive') {
+    if (currentTime <= 0) {
+      cardBgClass = 'bg-red-950/30 border-red-500/40 text-red-100';
+      cardTextColorClass = 'text-red-550 drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]';
+      cardStateLabel = '🔴 Tempo Esgotado';
+    } else if (currentTime <= 30) {
+      cardBgClass = 'bg-amber-950/20 border-amber-500/35 text-amber-100';
+      cardTextColorClass = 'text-amber-450 drop-shadow-[0_4px_12px_rgba(245,158,11,0.25)]';
+      cardStateLabel = '🟡 Últimos 30 segundos';
+    } else {
+      cardBgClass = 'bg-emerald-950/10 border-emerald-500/25 text-emerald-100';
+      cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+      cardStateLabel = '🟢 Tempo Normal';
+    }
+  } else {
+    const timeRemaining = Math.max(0, initialDuration - currentTime);
+    if (currentTime >= initialDuration) {
+      cardBgClass = 'bg-red-950/30 border-red-500/40 text-red-100';
+      cardTextColorClass = 'text-red-550 drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]';
+      cardStateLabel = '🔴 Tempo Esgotado';
+    } else if (timeRemaining <= 30) {
+      cardBgClass = 'bg-amber-950/20 border-amber-500/35 text-amber-100';
+      cardTextColorClass = 'text-amber-450 drop-shadow-[0_4px_12px_rgba(245,158,11,0.25)]';
+      cardStateLabel = '🟡 Últimos 30 segundos';
+    } else {
+      cardBgClass = 'bg-emerald-950/10 border-emerald-500/25 text-emerald-100';
+      cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+      cardStateLabel = '🟢 Tempo Normal';
+    }
+  }
 
   // Add Participant Form State
   const [addName, setAddName] = useState('');
@@ -174,51 +216,69 @@ export default function ControlView({
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors active:scale-95 cursor-pointer py-1.5 px-2.5 rounded-lg hover:bg-slate-850 font-bold text-sm"
+            className="flex items-center gap-1.5 text-slate-450 hover:text-indigo-400 hover:bg-indigo-950/20 transition-all active:scale-95 cursor-pointer py-1.5 px-3 rounded-lg border border-slate-800 font-bold text-xs uppercase tracking-wider"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Voltar</span>
+            <DoorOpen className="w-4 h-4 text-indigo-400" />
+            <span>Sair para Módulos</span>
           </button>
 
-          <h1 className="text-base font-black tracking-wider text-white flex items-center gap-2 uppercase">
-            <Smartphone className="w-5 h-5 text-indigo-400" />
-            Controle do Operador
+          <h1 className="text-base font-black tracking-wider text-white flex items-center gap-1 uppercase">
+            <Smartphone className="w-4 h-4 text-indigo-400 animate-pulse" />
+            Controle
           </h1>
 
-          <div
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
-              isConnected
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                : 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse'
+          <button
+            onClick={reconnect}
+            disabled={isReconnecting}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border transition-all active:scale-95 cursor-pointer max-h-[38px] ${
+              isReconnecting
+                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse'
+                : isConnected
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-500/40'
+                  : 'bg-red-500/10 border-red-500/20 text-red-400 animate-bounce'
             }`}
           >
-            {isConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-            <span>{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
-          </div>
+            {isReconnecting ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                <span>Reconectando...</span>
+              </>
+            ) : isConnected ? (
+              <>
+                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
+                <span>🟢 Online</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3.5 h-3.5 text-red-400" />
+                <span>🔴 Desconectado</span>
+              </>
+            )}
+          </button>
         </div>
       </header>
 
       {/* Main Control Panel Workspace */}
       <main className="flex-1 w-full max-w-2xl mx-auto p-4 space-y-6 overflow-y-auto pb-12 mt-2">
         
-        {/* NEW SIMPLIFIED STOPWATCH MAIN CARD */}
-        <section id="sync-preview-card" className="bg-slate-950/50 border border-slate-800 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        {/* NEW SIMPLIFIED STOPWATCH MAIN CARD WITH DYNAMIC DISPLAY STATES */}
+        <section id="sync-preview-card" className={`border rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all duration-700 ${cardBgClass}`}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
           
-          <div className="flex items-center justify-between mb-4 border-b border-slate-850 pb-3">
-            <span className="text-xs font-black tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
+          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+            <span className="text-xs font-black tracking-wider uppercase flex items-center gap-1.5 opacity-90">
               <Clock className="w-4 h-4 text-indigo-400" />
-              Cronômetro Atual
+              Cronômetro Atual ({cardStateLabel})
             </span>
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 py-1 px-2.5 rounded-full">
-              <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-500 animate-ping' : 'bg-amber-400'}`} />
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{isRunning ? 'RODANDO' : 'PAUSADO'}</span>
+            <div className="flex items-center gap-2 bg-slate-950/90 border border-white/10 py-1 px-2.5 rounded-full shadow-inner">
+              <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-450 animate-ping' : 'bg-amber-450'}`} />
+              <span className="text-[10px] font-black text-slate-350 uppercase tracking-widest">{isRunning ? 'RODANDO' : 'PAUSADO'}</span>
             </div>
           </div>
           
-          <div className="bg-slate-950 rounded-2xl p-6 text-center border border-slate-850 shadow-inner space-y-3">
+          <div className="bg-slate-950/80 rounded-2xl p-6 text-center border border-white/5 shadow-inner space-y-3">
             {activeItem ? (
-              <div className="text-slate-300 text-sm font-bold tracking-wide">
+              <div className="text-slate-200 text-sm font-bold tracking-wide">
                 Participante Ativo: <span className="text-indigo-400">{activeItem.name}</span> <span className="text-xs text-slate-400 font-medium">| {activeItem.partType}</span>
               </div>
             ) : (
@@ -228,15 +288,15 @@ export default function ControlView({
             )}
 
             {/* Giant Centralized Digits */}
-            <div className="text-6xl md:text-7xl font-mono font-black tracking-widest leading-none my-2 text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]">
+            <div className={`text-6xl md:text-7xl font-mono font-black tracking-widest leading-none my-2 transition-colors duration-500 ${cardTextColorClass}`}>
               {formatTime(currentTime)}
             </div>
 
-            <div className="text-xs text-slate-500 font-bold uppercase tracking-widest">
+            <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">
               Modo {mode === 'regressive' ? 'Regressivo' : 'Progressivo'} • Meta: {formatTime(initialDuration)}
               {activeItem && isRunning && (
-                <span className="block text-slate-400 mt-1">
-                  Tempo Realizado: <span className="font-mono text-emerald-500 font-bold">{formatTime(elapsedTime)}</span> (Dif: {formatDifference(initialDuration, elapsedTime)})
+                <span className="block text-slate-300 mt-1">
+                  Tempo Realizado: <span className="font-mono text-emerald-400 font-bold">{formatTime(elapsedTime)}</span> (Dif: {formatDifference(initialDuration, elapsedTime)})
                 </span>
               )}
             </div>
@@ -515,6 +575,25 @@ export default function ControlView({
                   </div>
                 );
               })
+            )}
+
+            {schedule.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-900 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const todayStr = new Date().toLocaleDateString('pt-BR');
+                    const titleInput = prompt("Digite o nome da reunião para registrar no histórico:", `Reunião de ${todayStr}`);
+                    if (titleInput !== null) {
+                      registerMeeting?.(titleInput);
+                    }
+                  }}
+                  className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-550 font-bold text-xs text-white uppercase tracking-wider rounded-xl transition-all hover:shadow-indigo-550/20 shadow-md flex items-center gap-1.5 active:scale-95 cursor-pointer border border-indigo-500/45"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Registrar e Fechar Reunião
+                </button>
+              </div>
             )}
           </div>
         </section>

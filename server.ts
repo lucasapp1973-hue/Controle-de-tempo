@@ -30,6 +30,13 @@ interface ScheduleItem {
   completedTime?: number | null; // in seconds actually taken
 }
 
+interface CompletedMeeting {
+  id: string;
+  date: string;
+  title: string;
+  schedule: ScheduleItem[];
+}
+
 interface TimerState {
   isRunning: boolean;
   mode: 'progressive' | 'regressive';
@@ -39,22 +46,40 @@ interface TimerState {
   schedule: ScheduleItem[];
   activeId: string | null;
   elapsedTime: number; // actual seconds spent on active item
+  meetings: CompletedMeeting[];
 }
 
 let timerState: TimerState = {
   isRunning: false,
   mode: 'regressive',
-  initialDuration: 240, // default 4 mins to match first participant
-  currentTime: 240,
+  initialDuration: 300,
+  currentTime: 300,
   lastUpdated: Date.now(),
-  schedule: [
-    { id: 'part_1', name: 'João Silva', partType: 'Leitura da Bíblia', expectedTime: 240, status: 'pending', completedTime: null },
-    { id: 'part_2', name: 'Maria Souza', partType: 'Primeira Conversa', expectedTime: 180, status: 'pending', completedTime: null },
-    { id: 'part_3', name: 'Pedro Santos', partType: 'Revisita', expectedTime: 300, status: 'pending', completedTime: null },
-    { id: 'part_4', name: 'Ana Costa', partType: 'Discurso', expectedTime: 240, status: 'pending', completedTime: null },
-  ],
+  schedule: [],
   activeId: null,
   elapsedTime: 0,
+  meetings: [
+    {
+      id: 'meet_999',
+      date: '09/06/2026',
+      title: 'Reunião de 09/06/2026',
+      schedule: [
+        { id: 'h_1', name: 'João Silva', partType: 'Leitura da Bíblia', expectedTime: 240, status: 'completed', completedTime: 238 },
+        { id: 'h_2', name: 'Maria Souza', partType: 'Primeira Conversa', expectedTime: 180, status: 'completed', completedTime: 202 },
+        { id: 'h_3', name: 'Pedro Santos', partType: 'Revisita', expectedTime: 300, status: 'completed', completedTime: 285 },
+        { id: 'h_4', name: 'Ana Costa', partType: 'Discurso', expectedTime: 240, status: 'completed', completedTime: 240 }
+      ]
+    },
+    {
+      id: 'meet_998',
+      date: '05/06/2026',
+      title: 'Reunião de 05/06/2026',
+      schedule: [
+        { id: 'h_5', name: 'Carlos Ramos', partType: 'Estudo Bíblico', expectedTime: 180, status: 'completed', completedTime: 175 },
+        { id: 'h_6', name: 'Sandra Lima', partType: 'Segunda Conversa', expectedTime: 240, status: 'completed', completedTime: 264 }
+      ]
+    }
+  ]
 };
 
 // Set first participant active by default if none is active
@@ -323,6 +348,66 @@ io.on('connection', (socket) => {
     }
     
     timerState.elapsedTime = 0;
+    broadcastState();
+  });
+
+  // Register and archive completed meeting
+  socket.on('meeting:register', (data: { title: string }) => {
+    if (timerState.schedule && timerState.schedule.length > 0) {
+      const today = new Date();
+      const day = String(today.getDate()).padStart(2, '0');
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const year = today.getFullYear();
+      const dateString = `${day}/${month}/${year}`;
+
+      const newMeeting: CompletedMeeting = {
+        id: 'meet_' + Math.random().toString(36).substring(2, 9),
+        date: dateString,
+        title: data.title || `Reunião de ${dateString}`,
+        schedule: JSON.parse(JSON.stringify(timerState.schedule)),
+      };
+
+      // Ensure active/pending are parsed cleanly
+      newMeeting.schedule.forEach(item => {
+        if (item.status === 'active') {
+          item.status = 'completed';
+          item.completedTime = timerState.elapsedTime;
+        } else if (item.status === 'pending') {
+          item.status = 'completed';
+          item.completedTime = item.expectedTime; // defaults to expected if not started
+        }
+      });
+
+      if (!timerState.meetings) {
+        timerState.meetings = [];
+      }
+      timerState.meetings.unshift(newMeeting);
+    }
+
+    // Reset current active states and clear schedule
+    timerState.isRunning = false;
+    stopTick();
+    timerState.schedule = [];
+    timerState.activeId = null;
+    timerState.elapsedTime = 0;
+    timerState.currentTime = 300;
+    timerState.initialDuration = 300;
+    timerState.lastUpdated = Date.now();
+
+    broadcastState();
+  });
+
+  // Delete a specific completed meeting
+  socket.on('meeting:delete', (data: { id: string }) => {
+    if (timerState.meetings) {
+      timerState.meetings = timerState.meetings.filter(m => m.id !== data.id);
+      broadcastState();
+    }
+  });
+
+  // Clear all archived meetings
+  socket.on('meetings:clear', () => {
+    timerState.meetings = [];
     broadcastState();
   });
 

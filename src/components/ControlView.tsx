@@ -1,6 +1,7 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
+import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 
 interface ControlViewProps {
   timerState: TimerState;
@@ -212,20 +213,14 @@ export default function ControlView({
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
       {/* Dynamic Sync Top Bar */}
-      <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-30">
+      <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 p-4 sticky top-0 z-30">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-slate-450 hover:text-indigo-400 hover:bg-indigo-950/20 transition-all active:scale-95 cursor-pointer py-1.5 px-3 rounded-lg border border-slate-800 font-bold text-xs uppercase tracking-wider"
-          >
-            <DoorOpen className="w-4 h-4 text-indigo-400" />
-            <span>Sair para Módulos</span>
-          </button>
+          <SystemModuleReturnIcon onClick={onBack} />
 
-          <h1 className="text-base font-black tracking-wider text-white flex items-center gap-1 uppercase">
-            <Smartphone className="w-4 h-4 text-indigo-400 animate-pulse" />
-            Controle
-          </h1>
+          <div className="flex flex-col items-center gap-1 select-none">
+            <AnalogueClock type="controle" />
+            <span className="text-xs font-black tracking-widest text-slate-300 uppercase">Controle</span>
+          </div>
 
           <button
             onClick={reconnect}

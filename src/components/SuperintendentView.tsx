@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { DoorOpen, Wifi, WifiOff, Clock, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { TimerState } from '../types';
 import { motion } from 'motion/react';
+import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 
 interface SuperintendentViewProps {
   timerState: TimerState;
@@ -155,21 +156,15 @@ export default function SuperintendentView({
       {/* Decorative gradient glowing spots */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
+       {/* Header */}
       <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 p-4 sticky top-0 z-35">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1.5 text-slate-450 hover:text-indigo-400 hover:bg-indigo-950/20 transition-all active:scale-95 cursor-pointer py-1.5 px-3 rounded-lg border border-slate-800 font-bold text-xs uppercase tracking-wider"
-          >
-            <DoorOpen className="w-4 h-4 text-indigo-400" />
-            <span>Sair para Módulos</span>
-          </button>
+          <SystemModuleReturnIcon onClick={onBack} />
 
-          <h1 className="text-base font-black tracking-wider text-white flex items-center gap-1 uppercase">
-            <Clock className="w-4 h-4 text-indigo-400 animate-pulse" />
-            Presidente
-          </h1>
+          <div className="flex flex-col items-center gap-1 select-none">
+            <AnalogueClock type="presidente" />
+            <span className="text-xs font-black tracking-widest text-slate-300 uppercase">Presidente</span>
+          </div>
 
           <div
             className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
@@ -178,7 +173,7 @@ export default function SuperintendentView({
                 : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
             }`}
           >
-            {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
+            {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-2400" />}
             <span>{isConnected ? '🟢 ONLINE' : '🔴 DESCONECTADO'}</span>
           </div>
         </div>

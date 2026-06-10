@@ -58,28 +58,7 @@ let timerState: TimerState = {
   schedule: [],
   activeId: null,
   elapsedTime: 0,
-  meetings: [
-    {
-      id: 'meet_999',
-      date: '09/06/2026',
-      title: 'Reunião de 09/06/2026',
-      schedule: [
-        { id: 'h_1', name: 'João Silva', partType: 'Leitura da Bíblia', expectedTime: 240, status: 'completed', completedTime: 238 },
-        { id: 'h_2', name: 'Maria Souza', partType: 'Primeira Conversa', expectedTime: 180, status: 'completed', completedTime: 202 },
-        { id: 'h_3', name: 'Pedro Santos', partType: 'Revisita', expectedTime: 300, status: 'completed', completedTime: 285 },
-        { id: 'h_4', name: 'Ana Costa', partType: 'Discurso', expectedTime: 240, status: 'completed', completedTime: 240 }
-      ]
-    },
-    {
-      id: 'meet_998',
-      date: '05/06/2026',
-      title: 'Reunião de 05/06/2026',
-      schedule: [
-        { id: 'h_5', name: 'Carlos Ramos', partType: 'Estudo Bíblico', expectedTime: 180, status: 'completed', completedTime: 175 },
-        { id: 'h_6', name: 'Sandra Lima', partType: 'Segunda Conversa', expectedTime: 240, status: 'completed', completedTime: 264 }
-      ]
-    }
-  ]
+  meetings: []
 };
 
 // Set first participant active by default if none is active

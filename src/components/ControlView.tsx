@@ -55,10 +55,10 @@ export default function ControlView({
       cardBgClass = 'bg-red-950/30 border-red-500/40 text-red-100';
       cardTextColorClass = 'text-red-550 drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]';
       cardStateLabel = '🔴 Tempo Esgotado';
-    } else if (currentTime <= 30) {
+    } else if (currentTime <= 20) {
       cardBgClass = 'bg-amber-950/20 border-amber-500/35 text-amber-100';
       cardTextColorClass = 'text-amber-450 drop-shadow-[0_4px_12px_rgba(245,158,11,0.25)]';
-      cardStateLabel = '🟡 Últimos 30 segundos';
+      cardStateLabel = '🟡 Últimos 20 segundos';
     } else {
       cardBgClass = 'bg-emerald-950/10 border-emerald-500/25 text-emerald-100';
       cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
@@ -70,10 +70,10 @@ export default function ControlView({
       cardBgClass = 'bg-red-950/30 border-red-500/40 text-red-100';
       cardTextColorClass = 'text-red-550 drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]';
       cardStateLabel = '🔴 Tempo Esgotado';
-    } else if (timeRemaining <= 30) {
+    } else if (timeRemaining <= 20) {
       cardBgClass = 'bg-amber-950/20 border-amber-500/35 text-amber-100';
       cardTextColorClass = 'text-amber-450 drop-shadow-[0_4px_12px_rgba(245,158,11,0.25)]';
-      cardStateLabel = '🟡 Últimos 30 segundos';
+      cardStateLabel = '🟡 Últimos 20 segundos';
     } else {
       cardBgClass = 'bg-emerald-950/10 border-emerald-500/25 text-emerald-100';
       cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
@@ -92,30 +92,30 @@ export default function ControlView({
   const [editPartType, setEditPartType] = useState('');
   const [editMinutes, setEditMinutes] = useState(4);
 
-  // Operator Vibration Trigger on 30s remaining and completion/overrun
+  // Operator Vibration Trigger on 20s remaining and completion/overrun
   useEffect(() => {
     if (!isRunning || !('vibrate' in navigator)) return;
 
-    let remains30s = false;
+    let remains20s = false;
     let ended = false;
 
     if (mode === 'regressive') {
-      if (currentTime === 30) {
-        remains30s = true;
+      if (currentTime === 20) {
+        remains20s = true;
       } else if (currentTime === 0) {
         ended = true;
       }
     } else {
       // Progressive mode counts up to initialDuration
       const diff = initialDuration - currentTime;
-      if (diff === 30) {
-        remains30s = true;
+      if (diff === 20) {
+        remains20s = true;
       } else if (diff === 0) {
         ended = true;
       }
     }
 
-    if (remains30s) {
+    if (remains20s) {
       try {
         navigator.vibrate(200); // short vibrate (200ms)
       } catch (err) {
@@ -298,7 +298,7 @@ export default function ControlView({
           </div>
 
           {/* STREAMLINED OPERATION BUTTONS */}
-          <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="mt-5 grid grid-cols-2 gap-3">
             {/* Play / Pause Toggle Button */}
             {!isRunning ? (
               <button
@@ -322,24 +322,12 @@ export default function ControlView({
               </button>
             )}
 
-            {/* Reiniciar Parte Button */}
-            <button
-              type="button"
-              onClick={resetTimer}
-              disabled={!isConnected}
-              className="py-3 px-4 bg-slate-800 hover:bg-slate-750 active:scale-[0.97] transition-all disabled:opacity-50 text-slate-200 hover:text-white rounded-xl font-bold flex items-center justify-center gap-1.5 border border-slate-755 cursor-pointer text-sm"
-              title="Reinicia a contagem com o tempo original desta parte"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Reiniciar Parte
-            </button>
-
             {/* Próxima Parte Button */}
             <button
               type="button"
               onClick={() => activeId && completeScheduleItem(activeId)}
               disabled={!isConnected || !activeId}
-              className="py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-950/20 cursor-pointer text-sm col-span-2 md:col-span-2"
+              className="py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-950/20 cursor-pointer text-sm"
               title="Registra tempo da parte atual e avança automaticamente para o próximo participante"
             >
               <SkipForward className="w-4 h-4" />
@@ -354,24 +342,26 @@ export default function ControlView({
               <button
                 type="button"
                 onClick={() => handleModeChange('regressive')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold tracking-tight transition-all cursor-pointer ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   mode === 'regressive'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
                 }`}
               >
-                Regressivo (Regressiva)
+                <ArrowDown className="w-3.5 h-3.5" />
+                Regressivo
               </button>
               <button
                 type="button"
                 onClick={() => handleModeChange('progressive')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold tracking-tight transition-all cursor-pointer ${
+                className={`py-2 px-3 rounded-lg text-xs font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                   mode === 'progressive'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
                 }`}
               >
-                Progressivo (Contagem)
+                <ArrowUp className="w-3.5 h-3.5" />
+                Progressivo
               </button>
             </div>
           </div>

@@ -181,11 +181,11 @@ export default function HistoryView({
       expectedSum += p.expectedTime;
       actualSum += p.completedTime ?? p.expectedTime;
     });
-    const deviationMins = Math.round(((actualSum - expectedSum) / 60) * 10) / 10;
+    const deviationMins = Math.round((actualSum - expectedSum) / 60);
     return {
       name: m.date,
       title: m.title.length > 12 ? m.title.slice(0, 12) + '...' : m.title,
-      'Desvio Total (Min)': deviationMins,
+      'Atraso Total (Min)': deviationMins,
     };
   });
 
@@ -197,15 +197,15 @@ export default function HistoryView({
     m.schedule?.forEach(p => {
       const diff = (p.completedTime ?? p.expectedTime) - p.expectedTime;
       if (diff <= 0) totalGreen++;
-      else if (diff <= 30) totalYellow++;
+      else if (diff <= 20) totalYellow++;
       else totalRed++;
     });
   });
 
   const chartStatusData = [
     { name: 'Dentro do Tempo', value: totalGreen, color: '#10b981' },
-    { name: 'Sobrevôo Curto (≤30s)', value: totalYellow, color: '#f59e0b' },
-    { name: 'Excesso (>30s)', value: totalRed, color: '#ef4444' },
+    { name: 'Sobrevôo Curto (≤20s)', value: totalYellow, color: '#f59e0b' },
+    { name: 'Excesso (>20s)', value: totalRed, color: '#ef4444' },
   ].filter(d => d.value > 0);
 
   // Generate textual shareable report
@@ -216,7 +216,7 @@ export default function HistoryView({
       const act = p.completedTime ?? p.expectedTime;
       const diff = act - p.expectedTime;
       const sign = diff > 0 ? '+' : '';
-      const statusIcon = diff <= 0 ? '🟢 Dentro da Meta' : diff <= 30 ? '🟡 Pequeno Excesso (≤30s)' : '🔴 Excesso (>30s)';
+      const statusIcon = diff <= 0 ? '🟢 Dentro da Meta' : diff <= 20 ? '🟡 Pequeno Excesso (≤20s)' : '🔴 Excesso (>20s)';
       
       reportText += `${idx + 1}. *${p.name}* (${p.partType})\n`;
       reportText += `   ⏱ Previsto: ${formatTime(p.expectedTime)} | Realizado: ${formatTime(act)}\n`;
@@ -342,7 +342,7 @@ export default function HistoryView({
                   <div className="mt-6 space-y-6">
                     <div className="space-y-3">
                       <h3 className="text-xs font-black uppercase tracking-wide text-slate-400">
-                        Estatísticas Consoldadas da Sessão
+                        Estatísticas
                       </h3>
                       
                       <div className="grid grid-cols-3 gap-3">
@@ -357,7 +357,7 @@ export default function HistoryView({
                           </span>
                         </div>
                         <div className="bg-slate-950 border border-slate-900/60 p-3 rounded-xl">
-                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Excedido</span>
+                          <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 block">Atraso</span>
                           <span className="text-lg font-black text-red-400">
                             {meetings[0].schedule.filter(i => (i.completedTime ?? i.expectedTime) - i.expectedTime > 0).length}
                           </span>
@@ -367,14 +367,14 @@ export default function HistoryView({
 
                     <div className="space-y-2.5">
                       <h3 className="text-xs font-black uppercase tracking-wide text-slate-400">
-                        Quadro Detalhado dos Oradores
+                        Quadro detalhado dos Participantes
                       </h3>
 
                       <div className="overflow-x-auto rounded-xl border border-slate-900 shadow-inner">
                         <table className="w-full text-left border-collapse text-xs sm:text-sm">
                           <thead>
                             <tr className="bg-slate-950 border-b border-slate-900 text-slate-450 text-[10px] font-bold uppercase tracking-widest leading-none">
-                              <th className="p-3 font-medium">Orador / Parte</th>
+                              <th className="p-3 font-medium">Participante / Parte</th>
                               <th className="p-3 font-medium">Previsto</th>
                               <th className="p-3 font-medium">Realizado</th>
                               <th className="p-3 font-medium text-right">Diferença</th>
@@ -601,9 +601,9 @@ export default function HistoryView({
                 className="space-y-6"
               >
                 <div className="bg-slate-900/30 border border-slate-900 p-5 rounded-2xl">
-                  <h3 className="text-sm font-black uppercase text-white mb-1 tracking-wide">Ficha Consolida de Oradores</h3>
+                  <h3 className="text-sm font-black uppercase text-white mb-1 tracking-wide">FICHA DE PRECISÃO NO USO DO TEMPO</h3>
                   <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                    Visualização compilada de todos os palestrantes e suas taxas de precisão em todas as reuniões arquivadas.
+                    Visualização compilada de todos os Participantes e suas taxas de precisão em todas as reuniões arquivadas.
                   </p>
 
                   <div className="space-y-3.5">
@@ -644,8 +644,8 @@ export default function HistoryView({
                               </div>
                               
                               <div className="text-right">
-                                <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block">Média Desvio</span>
-                                <span className={`text-xs font-mono font-black ${p.avgDeviation > 0 ? (p.avgDeviation <= 30 ? 'text-amber-400' : 'text-red-400') : 'text-emerald-400'}`}>
+                                <span className="text-[9px] uppercase font-black tracking-widest text-slate-500 block">Atraso</span>
+                                <span className={`text-xs font-mono font-black ${p.avgDeviation > 0 ? (p.avgDeviation <= 20 ? 'text-amber-400' : 'text-red-400') : 'text-emerald-400'}`}>
                                   {formatDifferenceValue(Math.round(p.avgDeviation))}
                                 </span>
                               </div>
@@ -677,9 +677,9 @@ export default function HistoryView({
                 {/* Visualizer 1: Deviation Tendency */}
                 <div className="bg-slate-900/30 border border-slate-900 p-4 sm:p-5 rounded-2xl space-y-4">
                   <div className="space-y-1">
-                    <h3 className="text-sm font-black uppercase text-white tracking-wide">Desvio Acumulado das Últimas Reuniões</h3>
+                    <h3 className="text-sm font-black uppercase text-white tracking-wide">Atraso Acumulado das Últimas Reuniões</h3>
                     <p className="text-xs text-slate-400">
-                      Soma total em minutos das folgas ou excessos apresentados por reunião. Próximo de zero indica cronometragem perfeita.
+                      Soma total em minutos dos atrasos... apresentados por reunião. Próximo de zero indica cronometragem perfeita.
                     </p>
                   </div>
 
@@ -691,15 +691,15 @@ export default function HistoryView({
                         <BarChart data={lastMeetingsData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                           <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                          <YAxis stroke="#64748b" fontSize={10} tickFormatter={(val) => `${val}m`} />
+                          <YAxis stroke="#64748b" fontSize={10} tickFormatter={(val) => `${Math.round(val)}`} />
                           <Tooltip 
                             contentStyle={{ backgroundColor: '#020617', border: '1px solid #334155', borderRadius: '12px' }}
                             labelStyle={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
                             itemStyle={{ color: '#fbbf24', fontSize: '11px' }}
                           />
-                          <Bar dataKey="Desvio Total (Min)" fill="#d97706" radius={[4, 4, 0, 0]}>
+                          <Bar dataKey="Atraso Total (Min)" fill="#d97706" radius={[4, 4, 0, 0]}>
                             {lastMeetingsData.map((entry, index) => {
-                              const dev = entry['Desvio Total (Min)'];
+                              const dev = entry['Atraso Total (Min)'];
                               const fillCol = dev > 0 ? '#f59e0b' : '#10b981';
                               return <Cell key={`cell-${index}`} fill={fillCol} />;
                             })}
@@ -715,7 +715,7 @@ export default function HistoryView({
                   <div className="bg-slate-900/30 border border-slate-900 p-4 sm:p-5 rounded-2xl flex flex-col justify-between">
                     <div className="space-y-1 mb-4">
                       <h3 className="text-sm font-black uppercase text-white tracking-wide">Distribuição de Status</h3>
-                      <p className="text-xs text-slate-400">Proporção total de oradores que finalizaram no prazo ou sofreram sobrevôos.</p>
+                      <p className="text-xs text-slate-400">Proporção total de participantes que finalizaram suas partes no tempo concedido</p>
                     </div>
 
                     {chartStatusData.length === 0 ? (
@@ -757,11 +757,11 @@ export default function HistoryView({
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="w-3 h-3 rounded-md bg-amber-500 block" />
-                        <span className="text-slate-300">Margem Amarela (≤30s): <b>{totalYellow} partes</b></span>
+                        <span className="text-slate-300">Margem Amarela (≤20s): <b>{totalYellow} partes</b></span>
                       </div>
                       <div className="flex items-center gap-2 text-xs">
                         <span className="w-3 h-3 rounded-md bg-red-500 block" />
-                        <span className="text-slate-300">Excedidos Vermelho (&gt;30s): <b>{totalRed} partes</b></span>
+                        <span className="text-slate-300">Excedidos Vermelho (&gt;20s): <b>{totalRed} partes</b></span>
                       </div>
                     </div>
 
@@ -830,7 +830,7 @@ export default function HistoryView({
                                 const act = p.completedTime ?? p.expectedTime;
                                 const diff = act - p.expectedTime;
                                 const sign = diff > 0 ? '+' : '';
-                                const iconBadge = diff <= 0 ? '🟢 Dentro da Meta' : diff <= 30 ? '🟡 Pequeno Excesso' : '🔴 Excesso Significativo';
+                                const iconBadge = diff <= 0 ? '🟢 Dentro da Meta' : diff <= 20 ? '🟡 Pequeno Excesso' : '🔴 Excesso Significativo';
                                 return (
                                   <div key={p.id} className="mt-3 pl-3 border-l-2 border-slate-800">
                                     <span>{ix + 1}. <b>{p.name}</b> ({p.partType})</span>

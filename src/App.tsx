@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar } from 'lucide-react';
+import { useState, useEffect, FormEvent } from 'react';
+import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSocket } from './hooks/useSocket';
 import DisplayView from './components/DisplayView';
@@ -32,6 +32,39 @@ export default function App() {
 
   // App mode: portal (selection), display, control, superintendent (presidente), or history
   const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent' | 'history'>('portal');
+  const [password, setPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+
+  const isAuthorized = () => {
+    const authTimestamp = localStorage.getItem('control_auth_timestamp');
+    if (!authTimestamp) return false;
+    const past = parseInt(authTimestamp, 10);
+    const now = Date.now();
+    // 2 hours corridas = 2 * 60 * 60 * 1000 = 7,200,000 milisegundos
+    return (now - past) < 7200000;
+  };
+
+  const handleControlClick = () => {
+    if (isAuthorized()) {
+      selectMode('control');
+    } else {
+      setShowPasswordPrompt(true);
+      setPassword('');
+      setPasswordError('');
+    }
+  };
+
+  const handlePasswordSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (password === '2121') {
+      localStorage.setItem('control_auth_timestamp', Date.now().toString());
+      setShowPasswordPrompt(false);
+      selectMode('control');
+    } else {
+      setPasswordError('Senha incorreta! Apenas irmãos autorizados têm acesso.');
+    }
+  };
 
   // Handle initial routing via URL search params
   useEffect(() => {
@@ -162,16 +195,6 @@ export default function App() {
         
         {/* Header Branding */}
         <header className="text-center space-y-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500/10 to-emerald-500/10 border border-slate-800 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest text-slate-300"
-          >
-            <Activity className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-            Sincronização Socket.IO de Baixa Latência
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -243,7 +266,7 @@ export default function App() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.45, duration: 0.4 }}
-            onClick={() => selectMode('control')}
+            onClick={handleControlClick}
             className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
           >
             <div className="space-y-4">
@@ -338,6 +361,55 @@ export default function App() {
         </motion.div>
 
       </div>
+
+      {showPasswordPrompt && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl relative"
+          >
+            <button
+              onClick={() => setShowPasswordPrompt(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">Acesso Restrito</h3>
+              <p className="text-xs text-slate-450 leading-relaxed">
+                Insira a senha de operador para garantir acesso autorizado ao painel de controle.
+              </p>
+            </div>
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <input
+                  type="password"
+                  placeholder="Senha"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-center font-mono text-xl tracking-widest text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                {passwordError && (
+                  <p className="text-[10px] text-red-400 text-center font-semibold mt-1">
+                    {passwordError}
+                  </p>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-505 text-white rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer active:scale-95"
+              >
+                Confirmar Senha
+              </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
 
       {/* Footer copyright */}
       <footer className="py-6 border-t border-slate-900/50 bg-slate-950/80 text-center text-xs text-slate-500 z-10 select-none">

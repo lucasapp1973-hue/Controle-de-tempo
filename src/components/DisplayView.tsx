@@ -81,14 +81,14 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
 
   // Color logic according to exact rules:
   // Verde = tempo normal
-  // Amarelo = restam 30 segundos
+  // Amarelo = restam 20 segundos
   // Vermelho = tempo esgotado
   let bgColorClass = 'bg-emerald-600'; // Default Green
 
   if (mode === 'regressive') {
     if (currentTime <= 0) {
       bgColorClass = 'bg-red-600'; // Red
-    } else if (currentTime <= 30) {
+    } else if (currentTime <= 20) {
       bgColorClass = 'bg-amber-500'; // Yellow
     } else {
       bgColorClass = 'bg-emerald-600'; // Green
@@ -98,7 +98,7 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
     const timeRemaining = Math.max(0, initialDuration - currentTime);
     if (currentTime >= initialDuration) {
       bgColorClass = 'bg-red-600'; // Red
-    } else if (timeRemaining <= 30) {
+    } else if (timeRemaining <= 20) {
       bgColorClass = 'bg-amber-500'; // Yellow
     } else {
       bgColorClass = 'bg-emerald-600'; // Green

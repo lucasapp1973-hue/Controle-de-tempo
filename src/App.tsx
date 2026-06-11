@@ -90,14 +90,20 @@ export default function App() {
     }
   };
 
-  // Always start at portal on initial load and clear any mode query param to ensure fresh start
+  // Check for direct module booking or fall back to portal on initial load
   // Also add zoom prevention listeners to ensure zero zooming on desktop/mobile
   useEffect(() => {
-    setAppMode('portal');
     const url = new URL(window.location.href);
-    if (url.searchParams.has('mode')) {
-      url.searchParams.delete('mode');
-      window.history.replaceState({}, '', url.toString());
+    const initialMode = url.searchParams.get('mode');
+    
+    if (initialMode === 'display') {
+      setAppMode('display');
+    } else {
+      setAppMode('portal');
+      if (url.searchParams.has('mode')) {
+        url.searchParams.delete('mode');
+        window.history.replaceState({}, '', url.toString());
+      }
     }
 
     // Modern JS Gesture Zoom prevention (pinch to zoom)

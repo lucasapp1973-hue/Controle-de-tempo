@@ -6,8 +6,6 @@ import { reunioesService } from '../services/reunioesService';
 import { participantesService } from '../services/participantesService';
 import { configuracoesService } from '../services/configuracoesService';
 import { sessionStore } from '../services/sessionStore';
-import { createRoot } from 'react-dom/client';
-import DisplayView from './DisplayView';
 
 const NOMES_OPTIONS = [
   "1. Abel Domiciano",
@@ -501,141 +499,22 @@ export default function ControlView({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPiPActive, setIsPiPActive] = useState(false);
 
-  // Document Picture-in-Picture & Fallback Window States and Refs
-  const pipWindowRef = useRef<any | null>(null);
-  const pipRootRef = useRef<any | null>(null);
-  const [floatingStatus, setFloatingStatus] = useState<string | null>(null);
-
-  // Synchronize Document Picture-in-Picture view if active in real-time
-  useEffect(() => {
-    if (pipRootRef.current) {
-      pipRootRef.current.render(
-        <div className="w-full h-full min-h-screen">
-          <DisplayView
-            timerState={timerState}
-            isConnected={isConnected}
-            onBack={() => {
-              if (pipWindowRef.current) {
-                pipWindowRef.current.close();
-              }
-            }}
-            systemConfig={systemConfig}
-          />
-        </div>
-      );
-    }
-  }, [timerState, isConnected, systemConfig]);
-
-  // Clean up Picture-in-Picture windows on unmount
-  useEffect(() => {
-    return () => {
-      if (pipWindowRef.current) {
-        pipWindowRef.current.close();
-      }
-    };
-  }, []);
-
-  const openFloatingDisplay = async () => {
-    setFloatingStatus(null);
-
-    // Try Document Picture-in-Picture API first
-    if ('documentPictureInPicture' in window) {
-      try {
-        if (pipWindowRef.current) {
-          pipWindowRef.current.close();
-        }
-
-        const pipWindow = await (window as any).documentPictureInPicture.requestWindow({
-          width: 800,
-          height: 600,
-        });
-
-        pipWindowRef.current = pipWindow;
-
-        // Copy styles to Document PiP window so styling looks identical to normal display
-        [...document.styleSheets].forEach((styleSheet) => {
-          try {
-            const cssRules = [...styleSheet.cssRules].map((rule) => rule.cssText).join('');
-            const style = document.createElement('style');
-            style.textContent = cssRules;
-            pipWindow.document.head.appendChild(style);
-          } catch (e) {
-            const link = document.createElement('link');
-            if (styleSheet.href) {
-              link.rel = 'stylesheet';
-              link.href = styleSheet.href;
-              pipWindow.document.head.appendChild(link);
-            }
-          }
-        });
-
-        pipWindow.document.title = 'Display do Cronômetro';
-        pipWindow.document.body.style.margin = '0';
-        pipWindow.document.body.style.padding = '0';
-        pipWindow.document.body.style.backgroundColor = '#000000';
-
-        const container = pipWindow.document.createElement('div');
-        container.id = 'pip-display-root';
-        pipWindow.document.body.appendChild(container);
-
-        const root = createRoot(container);
-        pipRootRef.current = root;
-
-        root.render(
-          <div className="w-full h-full min-h-screen">
-            <DisplayView
-              timerState={timerState}
-              isConnected={isConnected}
-              onBack={() => pipWindow.close()}
-              systemConfig={systemConfig}
-            />
-          </div>
-        );
-
-        setFloatingStatus('Display aberto em modo flutuante.');
-
-        pipWindow.addEventListener('pagehide', () => {
-          pipWindowRef.current = null;
-          pipRootRef.current = null;
-          setFloatingStatus('Janela do Display fechada.');
-          setTimeout(() => {
-            setFloatingStatus(prev => prev === 'Janela do Display fechada.' ? null : prev);
-          }, 4000);
-        });
-
-        return;
-      } catch (err) {
-        console.warn('Document Picture-in-Picture request failed, falling back to window.open:', err);
-      }
-    }
-
-    // Fallback: window.open()
+  // Auto PiP on Start setting (remembered in localStorage)
+  const [autoPiPOnStart, setAutoPiPOnStart] = useState<boolean>(() => {
     try {
-      const fallbackUrl = `${window.location.origin}${window.location.pathname}?mode=display`;
-      const fallbackWindow = window.open(
-        fallbackUrl,
-        'displayWindow',
-        'width=800,height=500,resizable=yes,scrollbars=no,menubar=no,location=no,status=no,toolbar=no'
-      );
-
-      if (fallbackWindow) {
-        setFloatingStatus('Display aberto em janela separada.');
-
-        const checkClosedTimer = setInterval(() => {
-          if (fallbackWindow.closed) {
-            clearInterval(checkClosedTimer);
-            setFloatingStatus('Janela do Display fechada.');
-            setTimeout(() => {
-              setFloatingStatus(prev => prev === 'Janela do Display fechada.' ? null : prev);
-            }, 4000);
-          }
-        }, 1000);
-      } else {
-        alert('Bloqueador de popups detectado. Ative permissão de popups para este site para abrir o display flutuante.');
-      }
-    } catch (err) {
-      console.error('Fallback window.open failed:', err);
+      const saved = localStorage.getItem('auto_pip_on_start');
+      return saved !== 'false';
+    } catch (_) {
+      return true;
     }
+  });
+
+  const toggleAutoPiPOnStart = () => {
+    const newValue = !autoPiPOnStart;
+    setAutoPiPOnStart(newValue);
+    try {
+      localStorage.setItem('auto_pip_on_start', String(newValue));
+    } catch (_) {}
   };
 
   // Canvas drawing function for the Picture-in-Picture frame
@@ -745,6 +624,20 @@ export default function ControlView({
     } catch (err) {
       console.error('Falha ao ativar Picture-in-Picture:', err);
       alert('Seu navegador bloqueou ou não suporta o modo Picture-in-Picture de vídeo.');
+    }
+  };
+
+  const handlePlayWithAutoPiP = async () => {
+    startTimer();
+    if (autoPiPOnStart && !isPiPActive) {
+      // Small delay on user interaction ensures state is updated and video capture matches immediately
+      setTimeout(async () => {
+        try {
+          await startPiP();
+        } catch (err) {
+          console.warn('Auto play PiP request failed:', err);
+        }
+      }, 50);
     }
   };
 
@@ -1033,12 +926,12 @@ export default function ControlView({
               )}
             </div>
 
-            {/* Picture-In-Picture & Floating Display Accent Toggles */}
-            <div className="pt-3 flex flex-col sm:flex-row gap-2 justify-center items-center">
+            {/* Picture-In-Picture Accent Controls */}
+            <div className="pt-3 flex flex-col items-center justify-center gap-2">
               <button
                 type="button"
                 onClick={startPiP}
-                className={`py-2 px-3.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer border ${
+                className={`py-2 px-5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer border ${
                   isPiPActive
                     ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 font-extrabold animate-pulse'
                     : 'bg-slate-950 hover:bg-slate-900 border-white/5 text-slate-400 hover:text-white hover:border-amber-500/30'
@@ -1046,35 +939,19 @@ export default function ControlView({
                 title="Deixa o mini-cronômetro flutuando por cima de outras janelas mesmo se você minimizar ou trocar de aba"
               >
                 <span>⏱</span>
-                <span>{isPiPActive ? 'Mini Timer Ativo' : 'Mini Timer PiP'}</span>
+                <span>{isPiPActive ? 'Mini Timer PiP Ativo' : 'Ativar Mini Timer PiP'}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={openFloatingDisplay}
-                className={`py-2 px-3.5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer border ${
-                  pipWindowRef.current || (floatingStatus && !floatingStatus.includes('fechada'))
-                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 font-extrabold animate-pulse'
-                    : 'bg-slate-950 hover:bg-slate-900 border-white/5 text-slate-400 hover:text-white hover:border-emerald-500/30'
-                }`}
-                title="Abre o Display completo em tela cheia flutuante (Document Picture-in-Picture) ou janela secundária"
-              >
-                <span>📺</span>
-                <span>Abrir Display Flutuante</span>
-              </button>
+              <label className="flex items-center gap-2 text-[10px] text-slate-400 select-none cursor-pointer hover:text-slate-200 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={autoPiPOnStart}
+                  onChange={toggleAutoPiPOnStart}
+                  className="rounded border-slate-800 bg-slate-950 text-amber-500 focus:ring-amber-500 focus:ring-opacity-25 w-3.5 h-3.5"
+                />
+                <span>Habilitar PiP automático ao clicar em Iniciar</span>
+              </label>
             </div>
-
-            {/* Dynamic Status Notifications for Floating Views */}
-            {floatingStatus && (
-              <div className={`mt-3 text-xs font-bold py-2 px-4 rounded-lg animate-fade-in flex items-center justify-center gap-1.5 max-w-xs mx-auto border ${
-                floatingStatus.includes('fechada') 
-                  ? 'bg-rose-950/20 border-rose-500/20 text-rose-400' 
-                  : 'bg-emerald-950/20 border-emerald-500/20 text-emerald-400'
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${floatingStatus.includes('fechada') ? 'bg-rose-400' : 'bg-emerald-400'}`} />
-                <span>{floatingStatus}</span>
-              </div>
-            )}
           </div>
 
           {/* STREAMLINED OPERATION BUTTONS */}
@@ -1083,7 +960,7 @@ export default function ControlView({
             {!isRunning ? (
               <button
                 type="button"
-                onClick={startTimer}
+                onClick={handlePlayWithAutoPiP}
                 disabled={!isConnected}
                 className="py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 cursor-pointer text-sm"
               >

@@ -1035,10 +1035,11 @@ export default function ControlView({
                               key={opt}
                               type="button"
                               onClick={() => {
-                                setAddName(opt);
+                                const formattedName = opt.replace(/^\d+\.\s*/, '');
+                                setAddName(formattedName);
                                 setShowNameDropdown(false);
                               }}
-                              className="w-full text-left py-2 px-4 hover:bg-indigo-600/10 hover:text-indigo-450 text-sm font-semibold text-slate-300 transition-colors"
+                              className="w-full text-left py-2 px-4 hover:bg-indigo-600/10 hover:text-indigo-455 text-sm font-semibold text-slate-300 transition-colors"
                             >
                               {opt}
                             </button>
@@ -1085,7 +1086,8 @@ export default function ControlView({
                             key={opt}
                             type="button"
                             onClick={() => {
-                              setAddPartType(opt);
+                              const formattedPartType = opt.replace(/^\d+\.\s*/, '');
+                              setAddPartType(formattedPartType);
                               setShowPartTypeDropdown(false);
                             }}
                             className="w-full text-left py-2 px-4 hover:bg-indigo-600/10 hover:text-indigo-455 text-sm font-semibold text-slate-300 transition-colors"

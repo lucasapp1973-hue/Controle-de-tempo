@@ -445,12 +445,8 @@ export default function App() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.6, duration: 0.4 }}
             onClick={() => {
-              if (isDemo) {
-                demoService.clearDemoData();
-                sessionStore.setSessionType('real');
-              } else {
-                sessionStore.setSessionType('demo');
-              }
+              sessionStore.setSessionType('demo');
+              setAppMode('control');
             }}
             className={`group relative border rounded-2xl p-6 shadow-xl cursor-pointer transition-all text-left flex flex-col justify-between h-full min-h-[220px] ${
               isDemo 

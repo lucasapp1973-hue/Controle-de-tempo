@@ -5,6 +5,7 @@ import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon'
 import { reunioesService } from '../services/reunioesService';
 import { participantesService } from '../services/participantesService';
 import { configuracoesService } from '../services/configuracoesService';
+import { sessionStore } from '../services/sessionStore';
 
 const NOMES_OPTIONS = [
   "1. Abel Domiciano",
@@ -95,6 +96,10 @@ export default function ControlView({
   const alertThreshold = systemConfig?.alertaSegundos ?? 20;
   const [currentMeetingId, setCurrentMeetingId] = useState<string>('');
   const [presidente, setPresidente] = useState<string>('');
+
+  // Saturday Meeting exclusive states for Demo Mode
+  const [saturdaySpeaker, setSaturdaySpeaker] = useState('Reginaldo Moreira');
+  const [saturdayTheme, setSaturdayTheme] = useState('Como a sabedoria de Deus nos beneficia?');
 
   // Local state for Collapsible Configuration Box
   const [showParamsCollapse, setShowParamsCollapse] = useState(false);
@@ -651,6 +656,63 @@ export default function ControlView({
             <span>Sessão ativa: <span className="font-mono text-slate-400">{currentMeetingId ? currentMeetingId.substring(0, 8) : 'Carregando...'}</span></span>
           </div>
         </section>
+
+        {/* CARD EXCLUSIVO DE SÁBADO (MODO DEMONSTRAÇÃO) */}
+        {sessionStore.isDemo() && (
+          <section id="saturday-meeting-card" className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-5 shadow-xl space-y-4">
+            <div className="flex items-center gap-2 border-b border-amber-500/20 pb-3">
+              <span className="text-lg">📅</span>
+              <h2 className="text-sm font-black uppercase tracking-wider text-amber-400">Reunião de Sábado — Discurso Público</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Nome do Orador</label>
+                <input
+                  type="text"
+                  placeholder="Nome do Orador..."
+                  value={saturdaySpeaker}
+                  onChange={(e) => setSaturdaySpeaker(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 font-semibold text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-black text-slate-400 tracking-wider block">Tema do Discurso Público</label>
+                <input
+                  type="text"
+                  placeholder="Tema do Discurso..."
+                  value={saturdayTheme}
+                  onChange={(e) => setSaturdayTheme(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 font-semibold text-white focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 pt-2 flex-wrap">
+              <p className="text-[11px] text-slate-400 leading-relaxed max-w-sm">
+                Configura a parte na programação e define o cronômetro para 30 minutos regresso. O presidente poderá visualizar em tempo real.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!saturdaySpeaker.trim() || !saturdayTheme.trim()) {
+                    alert("Por favor, preencha o Nome do Orador e o Tema do Discurso.");
+                    return;
+                  }
+                  // Send to socket
+                  addScheduleItem(saturdaySpeaker, `Discurso Público: ${saturdayTheme}`, 30 * 60);
+                  setTimer(30, 0, 'regressive');
+                  alert("Sucesso! 30 minutos configurados para o Orador e Tema selecionados!");
+                }}
+                className="py-2.5 px-5 bg-amber-500 hover:bg-amber-400 font-extrabold text-xs text-slate-950 uppercase tracking-wider rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5 border border-amber-600"
+              >
+                <span>⏱</span>
+                <span>Configurar 30 Minutos</span>
+              </button>
+            </div>
+          </section>
+        )}
 
         {/* NEW SIMPLIFIED STOPWATCH MAIN CARD WITH DYNAMIC DISPLAY STATES */}
         <section id="sync-preview-card" className={`border rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all duration-700 ${cardBgClass}`}>

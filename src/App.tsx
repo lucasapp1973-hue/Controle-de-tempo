@@ -6,6 +6,7 @@ import DisplayView from './components/DisplayView';
 import ControlView from './components/ControlView';
 import SuperintendentView from './components/SuperintendentView';
 import HistoryView from './components/HistoryView';
+import HourglassAnimated from './components/HourglassAnimated';
 
 export default function App() {
   const {
@@ -67,6 +68,7 @@ export default function App() {
   };
 
   // Always start at portal on initial load and clear any mode query param to ensure fresh start
+  // Also add zoom prevention listeners to ensure zero zooming on desktop/mobile
   useEffect(() => {
     setAppMode('portal');
     const url = new URL(window.location.href);
@@ -74,6 +76,35 @@ export default function App() {
       url.searchParams.delete('mode');
       window.history.replaceState({}, '', url.toString());
     }
+
+    // Modern JS Gesture Zoom prevention (pinch to zoom)
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    // CTRL + Wheel zoom prevention
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('wheel', handleWheel);
+    };
   }, []);
 
   // Update URL on state change to allow direct bookmarking
@@ -195,20 +226,29 @@ export default function App() {
       <div className="w-full max-w-4xl mx-auto px-6 py-12 flex-1 flex flex-col justify-center space-y-12 relative z-10">
         
         {/* Header Branding */}
-        <header className="text-center space-y-4">
+        <header className="text-center space-y-5 flex flex-col items-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8, y: -20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.05 }}
+            className="mb-1"
+          >
+            <HourglassAnimated />
+          </motion.div>
+
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
+            transition={{ delay: 0.15, duration: 0.5 }}
             className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight"
           >
-            Cronômetro <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Sincronizado</span>
+            Sincronizador <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">de Tempo</span>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
             className="text-slate-400 max-w-lg mx-auto text-sm sm:text-base leading-relaxed"
           >
             Conecte múltiplos dispositivos na mesma rede em tempo real. Use um smartphone para controlar o display gigante do computador, notebook ou tablet.
@@ -414,7 +454,7 @@ export default function App() {
 
       {/* Footer copyright */}
       <footer className="py-6 border-t border-slate-900/50 bg-slate-950/80 text-center text-xs text-slate-500 z-10 select-none">
-        <p>Cronômetro Multiponto Real-time via Socket.IO • Latência Zero</p>
+        <p>Sincronizador de Tempo Real-time via Socket.IO • Latência Zero</p>
       </footer>
 
     </div>

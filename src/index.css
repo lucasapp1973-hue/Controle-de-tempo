@@ -15,5 +15,6 @@
     background-color: #0f172a; /* bg-slate-900 */
     color: #f8fafc; /* text-slate-50 */
     overflow-x: hidden;
+    touch-action: manipulation;
   }
 }

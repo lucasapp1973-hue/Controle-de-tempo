@@ -1,5 +1,5 @@
 {
-  "name": "Cronômetro Coletivo Sincronizado",
+  "name": "Sincronizador de Tempo",
   "description": "Sistema de cronômetro sincronizado em tempo real entre dispositivos de exibição e controle remotos via Socket.IO.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

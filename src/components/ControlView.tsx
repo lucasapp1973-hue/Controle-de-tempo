@@ -1,7 +1,42 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
+
+const NOMES_OPTIONS = [
+  "1. Abel Domiciano",
+  "2. Alef Gall",
+  "3. Leônidas Alves",
+  "4. Lucas Evangelista",
+  "5. Marcus Vinícius",
+  "6. Moisés Werly",
+  "7. Nathan Evangelista",
+  "8. Rafael Barbosa",
+  "divider",
+  "9. Alice Werly",
+  "10. Cynthia Marinho",
+  "11. Elaine Fabíola",
+  "12. Erika Marinho",
+  "13. Francislaine Evangelista",
+  "14. Geralda Cassiano",
+  "15. Jaqueline Werly",
+  "16. Juciene Emerick",
+  "17. Maria Luiza",
+  "18. Noemi Evangelista",
+  "19. Rebeca Vilela",
+  "20. Rosane Domiciano",
+  "21. Rute Emerick",
+  "22. Terezinha de Jesus"
+];
+
+const PART_TYPES_OPTIONS = [
+  "1. Cultivando o interesse",
+  "2. Discurso",
+  "3. Explicando suas crenças",
+  "4. Fazendo discípulos",
+  "5. Iniciando conversas",
+  "6. O que você diria?"
+];
 
 interface ControlViewProps {
   timerState: TimerState;
@@ -92,6 +127,15 @@ export default function ControlView({
   const [editPartType, setEditPartType] = useState('');
   const [editMinutes, setEditMinutes] = useState(4);
 
+  // Dropdown Open/Close states
+  const [showNameDropdown, setShowNameDropdown] = useState(false);
+  const [showPartTypeDropdown, setShowPartTypeDropdown] = useState(false);
+  const [showMinutesDropdown, setShowMinutesDropdown] = useState(false);
+
+  const [showEditNameDropdown, setShowEditNameDropdown] = useState(false);
+  const [showEditPartTypeDropdown, setShowEditPartTypeDropdown] = useState(false);
+  const [showEditMinutesDropdown, setShowEditMinutesDropdown] = useState(false);
+
   // Operator Vibration Trigger on 20s remaining and completion/overrun
   useEffect(() => {
     if (!isRunning || !('vibrate' in navigator)) return;
@@ -160,6 +204,11 @@ export default function ControlView({
     const pad = (num: number) => String(num).padStart(2, '0');
     const sign = diff >= 0 ? '+' : '-';
     return `${sign}${pad(mins)}:${pad(secs)}`;
+  };
+
+  const getFilteredOptions = (currentVal: string, fullOptions: string[]) => {
+    if (!currentVal.trim()) return fullOptions;
+    return fullOptions.filter(opt => opt !== 'divider' && opt.toLowerCase().includes(currentVal.toLowerCase()));
   };
 
   // Handler for adding a participant
@@ -592,47 +641,171 @@ export default function ControlView({
 
           <form onSubmit={handleAddParticipant} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nome do Participante</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Pedro Santos"
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Pedro Santos"
+                    value={addName}
+                    onChange={(e) => {
+                      setAddName(e.target.value);
+                      setShowNameDropdown(true);
+                    }}
+                    onFocus={() => setShowNameDropdown(true)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-4 pr-10 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNameDropdown(!showNameDropdown)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {showNameDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowNameDropdown(false)} 
+                      />
+                      <div className="absolute left-0 right-0 mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
+                        {NOMES_OPTIONS.filter(opt => {
+                          if (opt === 'divider') return true;
+                          if (!addName.trim()) return true;
+                          return opt.toLowerCase().includes(addName.toLowerCase());
+                        }).map((opt, oIdx, arr) => {
+                          if (opt === 'divider') {
+                            // Only render divider if not filtering names
+                            if (addName.trim()) return null;
+                            return (
+                              <div key={`div-${oIdx}`} className="h-[1px] bg-slate-800/80 my-1.5 mx-2" />
+                            );
+                          }
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                setAddName(opt);
+                                setShowNameDropdown(false);
+                              }}
+                              className="w-full text-left py-2 px-4 hover:bg-indigo-600/10 hover:text-indigo-450 text-sm font-semibold text-slate-300 transition-colors"
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Tipo da Parte</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Revisita"
-                  value={addPartType}
-                  onChange={(e) => setAddPartType(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: Revisita"
+                    value={addPartType}
+                    onChange={(e) => {
+                      setAddPartType(e.target.value);
+                      setShowPartTypeDropdown(true);
+                    }}
+                    onFocus={() => setShowPartTypeDropdown(true)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-4 pr-10 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPartTypeDropdown(!showPartTypeDropdown)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+
+                  {showPartTypeDropdown && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40" 
+                        onClick={() => setShowPartTypeDropdown(false)} 
+                      />
+                      <div className="absolute left-0 right-0 mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
+                        {getFilteredOptions(addPartType, PART_TYPES_OPTIONS).map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => {
+                              setAddPartType(opt);
+                              setShowPartTypeDropdown(false);
+                            }}
+                            className="w-full text-left py-2 px-4 hover:bg-indigo-600/10 hover:text-indigo-455 text-sm font-semibold text-slate-300 transition-colors"
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
               <div className="flex items-center gap-3">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Tempo Previsto:</span>
-                <div className="flex items-center bg-slate-950 rounded-lg p-0.5 border border-slate-800 font-mono select-none">
+                <div className="flex items-center bg-slate-950 rounded-lg p-0.5 border border-slate-800 font-sans select-none relative">
                   <button
                     type="button"
                     onClick={() => setAddMinutes(prev => Math.max(1, prev - 1))}
-                    className="p-2 hover:bg-slate-900 rounded text-slate-400 hover:text-white max-h-[36px] flex items-center justify-center cursor-pointer font-bold"
+                    className="p-2 w-8 hover:bg-slate-900 rounded text-slate-400 hover:text-white max-h-[36px] flex items-center justify-center cursor-pointer font-bold font-mono"
                   >
                     -
                   </button>
-                  <span className="w-12 text-center text-sm font-bold text-white">{addMinutes} min</span>
+
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowMinutesDropdown(!showMinutesDropdown)}
+                      className="px-2.5 py-1 hover:bg-slate-900 rounded text-sm font-bold text-white flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <span>{addMinutes} min</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    </button>
+
+                    {showMinutesDropdown && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-40" 
+                          onClick={() => setShowMinutesDropdown(false)} 
+                        />
+                        <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-48 overflow-y-auto shadow-2xl z-50 py-1 w-28 text-center font-bold">
+                          {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => {
+                                setAddMinutes(m);
+                                setShowMinutesDropdown(false);
+                              }}
+                              className={`w-full py-2 hover:bg-indigo-600/10 hover:text-indigo-400 text-sm transition-colors block text-center ${
+                                addMinutes === m ? 'text-indigo-400 bg-slate-900 font-bold' : 'text-slate-300'
+                              }`}
+                            >
+                              {m} min
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setAddMinutes(prev => Math.min(120, prev + 1))}
-                    className="p-2 hover:bg-slate-900 rounded text-slate-400 hover:text-white max-h-[36px] flex items-center justify-center cursor-pointer font-bold"
+                    className="p-2 w-8 hover:bg-slate-900 rounded text-slate-400 hover:text-white max-h-[36px] flex items-center justify-center cursor-pointer font-bold font-mono"
                   >
                     +
                   </button>

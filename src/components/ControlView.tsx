@@ -30,12 +30,18 @@ const NOMES_OPTIONS = [
 ];
 
 const PART_TYPES_OPTIONS = [
-  "1. Cultivando o interesse",
-  "2. Discurso",
-  "3. Explicando suas crenças",
-  "4. Fazendo discípulos",
-  "5. Iniciando conversas",
-  "6. O que você diria?"
+  "1. Tesouros da Palavra de Deus",
+  "2. Joias espirituais",
+  "3. Leitura da Bíblia",
+  "4. Cultivando o interesse",
+  "5. Discurso",
+  "6. Explicando suas crenças",
+  "7. Fazendo discípulos",
+  "8. Iniciando conversas",
+  "9. O que você diria?",
+  "10. Vida Cristã parte 1",
+  "11. Vida Cristã parte 2",
+  "12. Estudo bíblico de congregação"
 ];
 
 interface ControlViewProps {
@@ -782,7 +788,7 @@ export default function ControlView({
                           onClick={() => setShowMinutesDropdown(false)} 
                         />
                         <div className="absolute left-1/2 -translate-x-1/2 mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-48 overflow-y-auto shadow-2xl z-50 py-1 w-28 text-center font-bold">
-                          {[2, 3, 4, 5, 6, 7, 8, 9, 10].map((m) => (
+                          {[2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 30].map((m) => (
                             <button
                               key={m}
                               type="button"

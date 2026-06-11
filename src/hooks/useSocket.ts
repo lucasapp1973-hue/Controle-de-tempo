@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
+import { sessionStore } from '../services/sessionStore';
 
 export function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [sessionType, setSessionType] = useState(sessionStore.getSessionType());
   const [timerState, setTimerState] = useState<TimerState>({
     isRunning: false,
     mode: 'regressive',
@@ -20,11 +22,25 @@ export function useSocket() {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    // Automatically connect to the host of the current page
+    const handleSessionChanged = () => {
+      setSessionType(sessionStore.getSessionType());
+    };
+    window.addEventListener('sessionTypeChanged', handleSessionChanged);
+    return () => {
+      window.removeEventListener('sessionTypeChanged', handleSessionChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    const isDemoMode = sessionType === 'demo';
+    // Automatically connect to the host of the current page with demo parameter
     const socket = io(window.location.origin, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
+      query: {
+        demo: isDemoMode ? 'true' : 'false',
+      },
     });
 
     socketRef.current = socket;
@@ -47,7 +63,7 @@ export function useSocket() {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [sessionType]);
 
   const reconnect = useCallback(() => {
     if (socketRef.current) {

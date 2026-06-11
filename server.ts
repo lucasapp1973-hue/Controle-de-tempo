@@ -49,7 +49,12 @@ interface TimerState {
   meetings: CompletedMeeting[];
 }
 
-let timerState: TimerState = {
+interface TimerSession {
+  state: TimerState;
+  interval: NodeJS.Timeout | null;
+}
+
+const initialRealState: TimerState = {
   isRunning: false,
   mode: 'regressive',
   initialDuration: 300,
@@ -61,114 +66,140 @@ let timerState: TimerState = {
   meetings: []
 };
 
-// Set first participant active by default if none is active
-if (timerState.schedule.length > 0) {
-  timerState.activeId = timerState.schedule[0].id;
-  timerState.schedule[0].status = 'active';
-  timerState.initialDuration = timerState.schedule[0].expectedTime;
-  timerState.currentTime = timerState.schedule[0].expectedTime;
+const getDemoMockSchedule = (): ScheduleItem[] => [
+  { id: 'dp_a1', name: 'João Silva', partType: 'Leitura da Bíblia', expectedTime: 240, status: 'active', completedTime: null },
+  { id: 'dp_a2', name: 'Maria Souza', partType: 'Primeira Conversa', expectedTime: 180, status: 'pending', completedTime: null },
+  { id: 'dp_a3', name: 'Pedro Santos', partType: 'Revisita', expectedTime: 300, status: 'pending', completedTime: null },
+  { id: 'dp_a4', name: 'Ana Costa', partType: 'Estudo Bíblico', expectedTime: 300, status: 'pending', completedTime: null },
+  { id: 'dp_a5', name: 'Roberto Lima', partType: 'Joias Espirituais', expectedTime: 600, status: 'pending', completedTime: null }
+];
+
+const initialDemoState = (): TimerState => ({
+  isRunning: false,
+  mode: 'regressive',
+  initialDuration: 240,
+  currentTime: 240,
+  lastUpdated: Date.now(),
+  schedule: getDemoMockSchedule(),
+  activeId: 'dp_a1',
+  elapsedTime: 0,
+  meetings: []
+});
+
+let realSession: TimerSession = {
+  state: initialRealState,
+  interval: null
+};
+
+let demoSession: TimerSession = {
+  state: initialDemoState(),
+  interval: null
+};
+
+function broadcastState(isDemo: boolean) {
+  const roomName = isDemo ? 'demo_room' : 'real_room';
+  const state = isDemo ? demoSession.state : realSession.state;
+  io.to(roomName).emit('timer:state', state);
 }
 
-let timerInterval: NodeJS.Timeout | null = null;
-
-function broadcastState() {
-  io.emit('timer:state', timerState);
-}
-
-function startTick() {
-  if (timerInterval) return;
+function startTick(isDemo: boolean) {
+  const session = isDemo ? demoSession : realSession;
+  if (session.interval) return;
   
-  timerInterval = setInterval(() => {
-    if (timerState.isRunning) {
-      if (timerState.mode === 'regressive') {
-        if (timerState.currentTime > 0) {
-          timerState.currentTime--;
+  session.interval = setInterval(() => {
+    if (session.state.isRunning) {
+      if (session.state.mode === 'regressive') {
+        if (session.state.currentTime > 0) {
+          session.state.currentTime--;
         }
-        // Do not force-stop timer on 0 so speaker can see overrun if needed on control,
-        // but display stays red at 0. Or, if they want to stop exactly at 0, let's keep it ticking
-        // so that elapsed time increases.
       } else {
-        // progressive
-        if (timerState.currentTime < timerState.initialDuration) {
-          timerState.currentTime++;
+        if (session.state.currentTime < session.state.initialDuration) {
+          session.state.currentTime++;
         }
       }
       
-      timerState.elapsedTime++;
-      timerState.lastUpdated = Date.now();
-      broadcastState();
+      session.state.elapsedTime++;
+      session.state.lastUpdated = Date.now();
+      broadcastState(isDemo);
     } else {
-      stopTick();
+      stopTick(isDemo);
     }
   }, 1000);
 }
 
-function stopTick() {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
+function stopTick(isDemo: boolean) {
+  const session = isDemo ? demoSession : realSession;
+  if (session.interval) {
+    clearInterval(session.interval);
+    session.interval = null;
   }
 }
 
 // Socket.IO Connection Logic
 io.on('connection', (socket) => {
+  const isDemo = socket.handshake.query.demo === 'true';
+  const session = isDemo ? demoSession : realSession;
+  const roomName = isDemo ? 'demo_room' : 'real_room';
+  
+  socket.join(roomName);
+
   // Send current state to newly connected client
-  socket.emit('timer:state', timerState);
+  socket.emit('timer:state', session.state);
 
   // Start timer
   socket.on('timer:start', () => {
-    timerState.isRunning = true;
-    timerState.lastUpdated = Date.now();
-    startTick();
-    broadcastState();
+    session.state.isRunning = true;
+    session.state.lastUpdated = Date.now();
+    startTick(isDemo);
+    broadcastState(isDemo);
   });
 
   // Pause timer
   socket.on('timer:pause', () => {
-    timerState.isRunning = false;
-    timerState.lastUpdated = Date.now();
-    stopTick();
-    broadcastState();
+    session.state.isRunning = false;
+    session.state.lastUpdated = Date.now();
+    stopTick(isDemo);
+    broadcastState(isDemo);
   });
 
   // Resume timer
   socket.on('timer:resume', () => {
-    timerState.isRunning = true;
-    timerState.lastUpdated = Date.now();
-    startTick();
-    broadcastState();
+    session.state.isRunning = true;
+    session.state.lastUpdated = Date.now();
+    startTick(isDemo);
+    broadcastState(isDemo);
   });
 
   // Reset timer
   socket.on('timer:reset', () => {
-    timerState.isRunning = false;
-    stopTick();
-    if (timerState.mode === 'regressive') {
-      timerState.currentTime = timerState.initialDuration;
+    session.state.isRunning = false;
+    stopTick(isDemo);
+    if (session.state.mode === 'regressive') {
+      session.state.currentTime = session.state.initialDuration;
     } else {
-      timerState.currentTime = 0;
+      session.state.currentTime = 0;
     }
-    timerState.elapsedTime = 0;
-    timerState.lastUpdated = Date.now();
-    broadcastState();
+    session.state.elapsedTime = 0;
+    session.state.lastUpdated = Date.now();
+    broadcastState(isDemo);
   });
 
   // Set timer configuration
   socket.on('timer:set', (config: { minutes: number; seconds: number; mode: 'progressive' | 'regressive' }) => {
-    timerState.isRunning = false;
-    stopTick();
-    timerState.mode = config.mode;
-    timerState.initialDuration = config.minutes * 60 + config.seconds;
+    session.state.isRunning = false;
+    stopTick(isDemo);
+    session.state.mode = config.mode;
+    session.state.initialDuration = config.minutes * 60 + config.seconds;
     
     if (config.mode === 'regressive') {
-      timerState.currentTime = timerState.initialDuration;
+      session.state.currentTime = config.minutes * 60 + config.seconds;
     } else {
-      timerState.currentTime = 0;
+      session.state.currentTime = 0;
     }
     
-    timerState.elapsedTime = 0;
-    timerState.lastUpdated = Date.now();
-    broadcastState();
+    session.state.elapsedTime = 0;
+    session.state.lastUpdated = Date.now();
+    broadcastState(isDemo);
   });
 
   // Schedule management: Add
@@ -182,75 +213,75 @@ io.on('connection', (socket) => {
       completedTime: null,
     };
     
-    timerState.schedule.push(newItem);
+    session.state.schedule.push(newItem);
     
     // If no active item, auto-activate this
-    if (!timerState.activeId) {
-      timerState.activeId = newItem.id;
+    if (!session.state.activeId) {
+      session.state.activeId = newItem.id;
       newItem.status = 'active';
-      timerState.initialDuration = newItem.expectedTime;
-      timerState.currentTime = timerState.mode === 'regressive' ? newItem.expectedTime : 0;
-      timerState.elapsedTime = 0;
+      session.state.initialDuration = newItem.expectedTime;
+      session.state.currentTime = session.state.mode === 'regressive' ? newItem.expectedTime : 0;
+      session.state.elapsedTime = 0;
     }
     
-    broadcastState();
+    broadcastState(isDemo);
   });
 
   // Schedule management: Edit
   socket.on('schedule:edit', (updated: ScheduleItem) => {
-    const idx = timerState.schedule.findIndex(i => i.id === updated.id);
+    const idx = session.state.schedule.findIndex(i => i.id === updated.id);
     if (idx !== -1) {
-      timerState.schedule[idx] = { ...timerState.schedule[idx], ...updated };
+      session.state.schedule[idx] = { ...session.state.schedule[idx], ...updated };
       
       // If editing the currently active item, update timer config too
-      if (timerState.activeId === updated.id) {
-        timerState.initialDuration = updated.expectedTime;
-        if (!timerState.isRunning) {
-          timerState.currentTime = timerState.mode === 'regressive' ? updated.expectedTime : 0;
+      if (session.state.activeId === updated.id) {
+        session.state.initialDuration = updated.expectedTime;
+        if (!session.state.isRunning) {
+          session.state.currentTime = session.state.mode === 'regressive' ? updated.expectedTime : 0;
         }
       }
-      broadcastState();
+      broadcastState(isDemo);
     }
   });
 
   // Schedule management: Remove
   socket.on('schedule:remove', (id: string) => {
-    timerState.schedule = timerState.schedule.filter(i => i.id !== id);
+    session.state.schedule = session.state.schedule.filter(i => i.id !== id);
     
     // If the active item was removed, fallback to the next pending or null
-    if (timerState.activeId === id) {
-      timerState.isRunning = false;
-      stopTick();
+    if (session.state.activeId === id) {
+      session.state.isRunning = false;
+      stopTick(isDemo);
       
-      const nextPending = timerState.schedule.find(i => i.status === 'pending');
+      const nextPending = session.state.schedule.find(i => i.status === 'pending');
       if (nextPending) {
-        timerState.activeId = nextPending.id;
+        session.state.activeId = nextPending.id;
         nextPending.status = 'active';
-        timerState.initialDuration = nextPending.expectedTime;
-        timerState.currentTime = timerState.mode === 'regressive' ? nextPending.expectedTime : 0;
+        session.state.initialDuration = nextPending.expectedTime;
+        session.state.currentTime = session.state.mode === 'regressive' ? nextPending.expectedTime : 0;
       } else {
-        timerState.activeId = null;
-        timerState.initialDuration = 300;
-        timerState.currentTime = timerState.mode === 'regressive' ? 300 : 0;
+        session.state.activeId = null;
+        session.state.initialDuration = 300;
+        session.state.currentTime = session.state.mode === 'regressive' ? 300 : 0;
       }
-      timerState.elapsedTime = 0;
+      session.state.elapsedTime = 0;
     }
     
-    broadcastState();
+    broadcastState(isDemo);
   });
 
   // Schedule management: Reorder
   socket.on('schedule:reorder', (newList: ScheduleItem[]) => {
-    timerState.schedule = newList;
-    broadcastState();
+    session.state.schedule = newList;
+    broadcastState(isDemo);
   });
 
   // Schedule management: Activate item manually
   socket.on('schedule:activate', (id: string) => {
-    timerState.isRunning = false;
-    stopTick();
+    session.state.isRunning = false;
+    stopTick(isDemo);
     
-    timerState.schedule = timerState.schedule.map(item => {
+    session.state.schedule = session.state.schedule.map(item => {
       if (item.id === id) {
         return { ...item, status: 'active' };
       }
@@ -261,78 +292,82 @@ io.on('connection', (socket) => {
       return item;
     });
 
-    const activeItem = timerState.schedule.find(i => i.id === id);
+    const activeItem = session.state.schedule.find(i => i.id === id);
     if (activeItem) {
-      timerState.activeId = id;
-      timerState.initialDuration = activeItem.expectedTime;
-      timerState.currentTime = timerState.mode === 'regressive' ? activeItem.expectedTime : 0;
-      timerState.elapsedTime = 0;
+      session.state.activeId = id;
+      session.state.initialDuration = activeItem.expectedTime;
+      session.state.currentTime = session.state.mode === 'regressive' ? activeItem.expectedTime : 0;
+      session.state.elapsedTime = 0;
     }
     
-    broadcastState();
+    broadcastState(isDemo);
   });
 
   // Schedule management: Complete item
   socket.on('schedule:complete', (id: string) => {
     // 1. Mark target item as completed and register elapsed time
-    let targetIdx = timerState.schedule.findIndex(i => i.id === id);
+    let targetIdx = session.state.schedule.findIndex(i => i.id === id);
     if (targetIdx !== -1) {
-      timerState.schedule[targetIdx].status = 'completed';
-      timerState.schedule[targetIdx].completedTime = timerState.elapsedTime;
+      session.state.schedule[targetIdx].status = 'completed';
+      session.state.schedule[targetIdx].completedTime = session.state.elapsedTime;
     }
 
-    timerState.isRunning = false;
-    stopTick();
+    session.state.isRunning = false;
+    stopTick(isDemo);
 
     // 2. Automatically select next participant (status = 'pending')
-    const nextPending = timerState.schedule.find(i => i.status === 'pending');
+    const nextPending = session.state.schedule.find(i => i.status === 'pending');
     if (nextPending) {
-      timerState.activeId = nextPending.id;
+      session.state.activeId = nextPending.id;
       nextPending.status = 'active';
-      timerState.initialDuration = nextPending.expectedTime;
+      session.state.initialDuration = nextPending.expectedTime;
       
-      if (timerState.mode === 'regressive') {
-        timerState.currentTime = nextPending.expectedTime;
+      if (session.state.mode === 'regressive') {
+        session.state.currentTime = nextPending.expectedTime;
       } else {
-        timerState.currentTime = 0;
+        session.state.currentTime = 0;
       }
     } else {
-      timerState.activeId = null;
+      session.state.activeId = null;
     }
     
-    timerState.elapsedTime = 0;
-    broadcastState();
+    session.state.elapsedTime = 0;
+    broadcastState(isDemo);
   });
 
   // Schedule management: Reset all to pending
   socket.on('schedule:reset', () => {
-    timerState.isRunning = false;
-    stopTick();
+    session.state.isRunning = false;
+    stopTick(isDemo);
     
-    timerState.schedule = timerState.schedule.map(item => ({
-      ...item,
-      status: 'pending',
-      completedTime: null,
-    }));
-
-    if (timerState.schedule.length > 0) {
-      timerState.activeId = timerState.schedule[0].id;
-      timerState.schedule[0].status = 'active';
-      timerState.initialDuration = timerState.schedule[0].expectedTime;
-      timerState.currentTime = timerState.mode === 'regressive' ? timerState.schedule[0].expectedTime : 0;
+    if (isDemo) {
+      session.state.schedule = getDemoMockSchedule();
     } else {
-      timerState.activeId = null;
-      timerState.initialDuration = 300;
-      timerState.currentTime = timerState.mode === 'regressive' ? 300 : 0;
+      session.state.schedule = session.state.schedule.map(item => ({
+        ...item,
+        status: 'pending',
+        completedTime: null,
+      }));
+    }
+
+    if (session.state.schedule.length > 0) {
+      session.state.activeId = session.state.schedule[0].id;
+      session.state.schedule[0].status = 'active';
+      session.state.initialDuration = session.state.schedule[0].expectedTime;
+      session.state.currentTime = session.state.mode === 'regressive' ? session.state.schedule[0].expectedTime : 0;
+    } else {
+      session.state.activeId = null;
+      session.state.initialDuration = 300;
+      session.state.currentTime = session.state.mode === 'regressive' ? 300 : 0;
     }
     
-    timerState.elapsedTime = 0;
-    broadcastState();
+    session.state.elapsedTime = 0;
+    broadcastState(isDemo);
   });
 
   // Register and archive completed meeting
   socket.on('meeting:register', (data: { title: string }) => {
-    if (timerState.schedule && timerState.schedule.length > 0) {
+    if (session.state.schedule && session.state.schedule.length > 0) {
       const today = new Date();
       const day = String(today.getDate()).padStart(2, '0');
       const month = String(today.getMonth() + 1).padStart(2, '0');
@@ -343,56 +378,64 @@ io.on('connection', (socket) => {
         id: 'meet_' + Math.random().toString(36).substring(2, 9),
         date: dateString,
         title: data.title || `Reunião de ${dateString}`,
-        schedule: JSON.parse(JSON.stringify(timerState.schedule)),
+        schedule: JSON.parse(JSON.stringify(session.state.schedule)),
       };
 
       // Ensure active/pending are parsed cleanly
       newMeeting.schedule.forEach(item => {
         if (item.status === 'active') {
           item.status = 'completed';
-          item.completedTime = timerState.elapsedTime;
+          item.completedTime = session.state.elapsedTime;
         } else if (item.status === 'pending') {
           item.status = 'completed';
           item.completedTime = item.expectedTime; // defaults to expected if not started
         }
       });
 
-      if (!timerState.meetings) {
-        timerState.meetings = [];
+      if (!session.state.meetings) {
+        session.state.meetings = [];
       }
-      timerState.meetings.unshift(newMeeting);
+      session.state.meetings.unshift(newMeeting);
     }
 
     // Reset current active states and clear schedule
-    timerState.isRunning = false;
-    stopTick();
-    timerState.schedule = [];
-    timerState.activeId = null;
-    timerState.elapsedTime = 0;
-    timerState.currentTime = 300;
-    timerState.initialDuration = 300;
-    timerState.lastUpdated = Date.now();
+    session.state.isRunning = false;
+    stopTick(isDemo);
+    
+    if (isDemo) {
+      session.state.schedule = getDemoMockSchedule();
+      session.state.activeId = 'dp_a1';
+      session.state.initialDuration = 240;
+      session.state.currentTime = 240;
+    } else {
+      session.state.schedule = [];
+      session.state.activeId = null;
+      session.state.currentTime = 300;
+      session.state.initialDuration = 300;
+    }
+    session.state.elapsedTime = 0;
+    session.state.lastUpdated = Date.now();
 
-    broadcastState();
+    broadcastState(isDemo);
   });
 
   // Delete a specific completed meeting
   socket.on('meeting:delete', (data: { id: string }) => {
-    if (timerState.meetings) {
-      timerState.meetings = timerState.meetings.filter(m => m.id !== data.id);
-      broadcastState();
+    if (session.state.meetings) {
+      session.state.meetings = session.state.meetings.filter(m => m.id !== data.id);
+      broadcastState(isDemo);
     }
   });
 
   // Clear all archived meetings
   socket.on('meetings:clear', () => {
-    timerState.meetings = [];
-    broadcastState();
+    session.state.meetings = [];
+    broadcastState(isDemo);
   });
 
   // Handle manual sync request
   socket.on('timer:sync', () => {
-    socket.emit('timer:state', timerState);
+    socket.emit('timer:state', session.state);
   });
 
   // Disconnect
@@ -407,7 +450,8 @@ app.get('/api/health', (req, res) => {
 });
 
 app.get('/api/timer-state', (req, res) => {
-  res.json(timerState);
+  const isDemo = req.query.demo === 'true';
+  res.json(isDemo ? demoSession.state : realSession.state);
 });
 
 // Vite middleware setup

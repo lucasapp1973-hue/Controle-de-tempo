@@ -8,6 +8,8 @@ import SuperintendentView from './components/SuperintendentView';
 import HistoryView from './components/HistoryView';
 import HourglassAnimated from './components/HourglassAnimated';
 import { configuracoesService, SystemConfig, DEFAULT_CONFIG } from './services/configuracoesService';
+import { sessionStore } from './services/sessionStore';
+import { demoService } from './services/demoService';
 
 export default function App() {
   const {
@@ -38,14 +40,25 @@ export default function App() {
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
+  const [isDemo, setIsDemo] = useState(sessionStore.isDemo());
 
   useEffect(() => {
-    // Subscribe to configurations from Firestore
+    const handleSessionChanged = () => {
+      setIsDemo(sessionStore.isDemo());
+    };
+    window.addEventListener('sessionTypeChanged', handleSessionChanged);
+    return () => {
+      window.removeEventListener('sessionTypeChanged', handleSessionChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Subscribe to configurations from Firestore or Demo Store based on current isDemo state
     const unsubscribe = configuracoesService.subscribeConfig((config) => {
       setSystemConfig(config);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isDemo]);
 
   const isAuthorized = () => {
     const authTimestamp = localStorage.getItem('control_auth_timestamp');
@@ -132,6 +145,29 @@ export default function App() {
     window.history.pushState({}, '', url.toString());
   };
 
+  const renderDemoBanner = () => {
+    if (!isDemo) return null;
+    return (
+      <div className="w-full bg-amber-500 text-slate-950 font-sans text-xs sm:text-sm font-extrabold py-2.5 px-4 flex justify-between items-center shadow-lg select-none sticky top-0 z-50 border-b border-amber-600">
+        <div className="flex items-center gap-2 overflow-hidden truncate">
+          <span className="text-sm">🎬</span>
+          <span className="truncate"><b>MODO DEMONSTRAÇÃO:</b> Ambiente de simulação. Dados reais protegidos.</span>
+        </div>
+        <button
+          onClick={() => {
+            demoService.clearDemoData();
+            sessionStore.setSessionType('real');
+            setAppMode('portal');
+          }}
+          className="bg-slate-950 hover:bg-slate-900 text-white rounded-lg px-3 py-1.5 text-xs uppercase tracking-wider font-black transition-all shadow-md flex items-center gap-1 cursor-pointer select-none shrink-0 active:scale-95 border border-slate-800"
+        >
+          <span>🚪</span>
+          <span>Sair</span>
+        </button>
+      </div>
+    );
+  };
+
   // Render Display View
   if (appMode === 'display') {
     return (
@@ -141,6 +177,7 @@ export default function App() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {renderDemoBanner()}
         <DisplayView
           timerState={timerState}
           isConnected={isConnected}
@@ -155,32 +192,36 @@ export default function App() {
   if (appMode === 'control') {
     return (
       <motion.div
+        className="min-h-screen flex flex-col"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -15 }}
         transition={{ duration: 0.3 }}
       >
-        <ControlView
-          timerState={timerState}
-          isConnected={isConnected}
-          isReconnecting={isReconnecting}
-          reconnect={reconnect}
-          registerMeeting={registerMeeting}
-          onBack={handleBackToPortal}
-          startTimer={startTimer}
-          pauseTimer={pauseTimer}
-          resumeTimer={resumeTimer}
-          resetTimer={resetTimer}
-          setTimer={setTimer}
-          addScheduleItem={addScheduleItem}
-          editScheduleItem={editScheduleItem}
-          removeScheduleItem={removeScheduleItem}
-          reorderSchedule={reorderSchedule}
-          activateScheduleItem={activateScheduleItem}
-          completeScheduleItem={completeScheduleItem}
-          resetSchedule={resetSchedule}
-          systemConfig={systemConfig}
-        />
+        {renderDemoBanner()}
+        <div className="flex-1">
+          <ControlView
+            timerState={timerState}
+            isConnected={isConnected}
+            isReconnecting={isReconnecting}
+            reconnect={reconnect}
+            registerMeeting={registerMeeting}
+            onBack={handleBackToPortal}
+            startTimer={startTimer}
+            pauseTimer={pauseTimer}
+            resumeTimer={resumeTimer}
+            resetTimer={resetTimer}
+            setTimer={setTimer}
+            addScheduleItem={addScheduleItem}
+            editScheduleItem={editScheduleItem}
+            removeScheduleItem={removeScheduleItem}
+            reorderSchedule={reorderSchedule}
+            activateScheduleItem={activateScheduleItem}
+            completeScheduleItem={completeScheduleItem}
+            resetSchedule={resetSchedule}
+            systemConfig={systemConfig}
+          />
+        </div>
       </motion.div>
     );
   }
@@ -194,6 +235,7 @@ export default function App() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {renderDemoBanner()}
         <SuperintendentView
           timerState={timerState}
           isConnected={isConnected}
@@ -212,6 +254,7 @@ export default function App() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
+        {renderDemoBanner()}
         <HistoryView
           timerState={timerState}
           isConnected={isConnected}
@@ -286,7 +329,7 @@ export default function App() {
         </motion.div>
 
         {/* Portal Options Section */}
-        <section className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full max-w-5xl mx-auto">
+        <section className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 w-full max-w-6xl mx-auto">
           
           {/* Card 1: Display */}
           <motion.div
@@ -298,13 +341,13 @@ export default function App() {
           >
             <div className="space-y-4">
               <div className="p-3 bg-emerald-500/10 text-emerald-400 w-fit rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Tv className="w-6 h-6" />
+                <Tv className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white group-hover:text-emerald-400 transition-colors uppercase">
+                <h2 className="text-base font-black text-white group-hover:text-emerald-400 transition-colors uppercase">
                   1. Display
                 </h2>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                   Mostra o cronômetro com números extremamente gigantes em tela cheia. Perfeito para projetores de estúdio, TV ou tablets suspensos na parede.
                 </p>
               </div>
@@ -325,13 +368,13 @@ export default function App() {
           >
             <div className="space-y-4">
               <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Smartphone className="w-6 h-6" />
+                <Smartphone className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
+                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
                   2. Controle
                 </h2>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                   Cadastre participantes, reordene-os e controle o cronômetro em tempo real do seu smartphone, PC ou tablet de controle.
                 </p>
               </div>
@@ -352,13 +395,13 @@ export default function App() {
           >
             <div className="space-y-4">
               <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <ClipboardList className="w-6 h-6" />
+                <ClipboardList className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
+                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
                   3. Presidente
                 </h2>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                   Acompanhe a parte ativa em tempo real com cronômetro grande, ou visualize imediatamente os resultados consolidados assim que concluídas.
                 </p>
               </div>
@@ -379,19 +422,61 @@ export default function App() {
           >
             <div className="space-y-4">
               <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Calendar className="w-6 h-6" />
+                <Calendar className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-lg font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
+                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
                   4. Histórico
                 </h2>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                   Consulte todas as reuniões já realizadas com os indicadores estatísticos detalhados de cada orador e tabelas com cores dinâmicas.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
               <span>Abrir Histórico</span>
+              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            </div>
+          </motion.div>
+
+          {/* Card 5: Demonstração */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6, duration: 0.4 }}
+            onClick={() => {
+              if (isDemo) {
+                demoService.clearDemoData();
+                sessionStore.setSessionType('real');
+              } else {
+                sessionStore.setSessionType('demo');
+              }
+            }}
+            className={`group relative border rounded-2xl p-6 shadow-xl cursor-pointer transition-all text-left flex flex-col justify-between h-full min-h-[220px] ${
+              isDemo 
+                ? 'bg-amber-500/15 border-amber-500/80 shadow-amber-500/10 hover:bg-amber-500/20' 
+                : 'bg-slate-900/40 hover:bg-slate-900 border-slate-800 hover:border-amber-500/40 hover:shadow-amber-500/5'
+            }`}
+          >
+            <div className="space-y-4">
+              <div className={`p-3 w-fit rounded-xl transition-all transform group-hover:scale-105 duration-300 ${
+                isDemo 
+                  ? 'bg-amber-500 text-slate-950 font-black' 
+                  : 'bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950'
+              }`}>
+                <span className="text-base leading-none">🎬</span>
+              </div>
+              <div>
+                <h2 className="text-base font-black text-white group-hover:text-amber-400 transition-colors uppercase">
+                  🎬 DEMONSTRAÇÃO
+                </h2>
+                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                  Ambiente simulador de treinamento e testes sem interferência nos dados reais e relatórios do Firebase.
+                </p>
+              </div>
+            </div>
+            <div className={`mt-6 flex items-center justify-between text-xs font-bold uppercase tracking-widest ${isDemo ? 'text-amber-400' : 'text-slate-500 group-hover:text-amber-400'}`}>
+              <span>{isDemo ? 'Desativar Demo' : 'Ativar Demo'}</span>
               <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
             </div>
           </motion.div>

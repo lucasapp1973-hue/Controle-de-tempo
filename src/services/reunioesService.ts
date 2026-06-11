@@ -1,5 +1,7 @@
 import { collection, doc, addDoc, setDoc, deleteDoc, getDocs, doc as firestoreDoc, query, orderBy, getDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { sessionStore } from './sessionStore';
+import { demoService } from './demoService';
 
 export interface FirestoreParte {
   id?: string;
@@ -26,6 +28,9 @@ const COLL_PATH = 'reunioes';
 
 export const reunioesService = {
   async fetchReunioes(): Promise<FirestoreReuniao[]> {
+    if (sessionStore.isDemo()) {
+      return demoService.getReunioes();
+    }
     try {
       const collRef = collection(db, COLL_PATH);
       const q = query(collRef, orderBy('data', 'desc'));
@@ -60,6 +65,21 @@ export const reunioesService = {
   },
 
   async createReuniao(data: { data: string; presidente: string; status?: 'em_andamento' | 'concluida' | 'arquivada' }): Promise<string> {
+    if (sessionStore.isDemo()) {
+      const list = demoService.getReunioes();
+      const newId = 'demo_meet_' + Math.random().toString(36).substring(2, 9);
+      const newItem: FirestoreReuniao = {
+        id: newId,
+        data: data.data,
+        presidente: data.presidente,
+        criadaEm: new Date().toISOString(),
+        status: data.status || 'em_andamento',
+        partes: []
+      };
+      demoService.saveReunioes([newItem, ...list]);
+      window.dispatchEvent(new Event('demoReunioesUpdated'));
+      return newId;
+    }
     try {
       const collRef = collection(db, COLL_PATH);
       const docRef = await addDoc(collRef, {
@@ -76,6 +96,25 @@ export const reunioesService = {
   },
 
   async addParteToReuniao(reuniaoId: string, parte: Omit<FirestoreParte, 'registradoEm'>): Promise<string> {
+    if (sessionStore.isDemo()) {
+      const list = demoService.getReunioes();
+      const newId = 'demo_parte_' + Math.random().toString(36).substring(2, 9);
+      const updated = list.map(m => {
+        if (m.id === reuniaoId) {
+          const partes = m.partes || [];
+          const novaParte: FirestoreParte = {
+            ...parte,
+            id: newId,
+            registradoEm: new Date().toISOString()
+          };
+          return { ...m, partes: [...partes, novaParte] };
+        }
+        return m;
+      });
+      demoService.saveReunioes(updated);
+      window.dispatchEvent(new Event('demoReunioesUpdated'));
+      return newId;
+    }
     const subCollPath = `${COLL_PATH}/${reuniaoId}/partes`;
     try {
       const partesRef = collection(db, subCollPath);
@@ -91,6 +130,13 @@ export const reunioesService = {
   },
 
   async updateReuniaoStatus(reuniaoId: string, status: 'em_andamento' | 'concluida' | 'arquivada'): Promise<void> {
+    if (sessionStore.isDemo()) {
+      const list = demoService.getReunioes();
+      const updated = list.map(m => m.id === reuniaoId ? { ...m, status } : m);
+      demoService.saveReunioes(updated);
+      window.dispatchEvent(new Event('demoReunioesUpdated'));
+      return;
+    }
     try {
       const docRef = doc(db, COLL_PATH, reuniaoId);
       await setDoc(docRef, { status }, { merge: true });
@@ -100,6 +146,13 @@ export const reunioesService = {
   },
 
   async updateReuniao(reuniaoId: string, data: Partial<Omit<FirestoreReuniao, 'id'>>): Promise<void> {
+    if (sessionStore.isDemo()) {
+      const list = demoService.getReunioes();
+      const updated = list.map(m => m.id === reuniaoId ? { ...m, ...data } : m);
+      demoService.saveReunioes(updated);
+      window.dispatchEvent(new Event('demoReunioesUpdated'));
+      return;
+    }
     try {
       const docRef = doc(db, COLL_PATH, reuniaoId);
       await setDoc(docRef, data, { merge: true });
@@ -109,6 +162,11 @@ export const reunioesService = {
   },
 
   async fetchPartes(reuniaoId: string): Promise<FirestoreParte[]> {
+    if (sessionStore.isDemo()) {
+      const list = demoService.getReunioes();
+      const m = list.find(reuniao => reuniao.id === reuniaoId);
+      return m?.partes || [];
+    }
     try {
       const partesRef = collection(db, `${COLL_PATH}/${reuniaoId}/partes`);
       const snap = await getDocs(partesRef);
@@ -123,6 +181,13 @@ export const reunioesService = {
   },
 
   async deleteReuniao(reuniaoId: string): Promise<void> {
+    if (sessionStore.isDemo()) {
+      const list = demoService.getReunioes();
+      const filtered = list.filter(m => m.id !== reuniaoId);
+      demoService.saveReunioes(filtered);
+      window.dispatchEvent(new Event('demoReunioesUpdated'));
+      return;
+    }
     try {
       // 1. Delete all parts subcollection first to avoid orphaned records
       const partesRef = collection(db, `${COLL_PATH}/${reuniaoId}/partes`);
@@ -139,6 +204,11 @@ export const reunioesService = {
   },
 
   async clearAllReunioes(): Promise<void> {
+    if (sessionStore.isDemo()) {
+      demoService.saveReunioes([]);
+      window.dispatchEvent(new Event('demoReunioesUpdated'));
+      return;
+    }
     try {
       const collRef = collection(db, COLL_PATH);
       const qSnap = await getDocs(collRef);

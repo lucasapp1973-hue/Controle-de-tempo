@@ -1,5 +1,7 @@
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { sessionStore } from './sessionStore';
+import { demoService } from './demoService';
 
 export interface SystemConfig {
   senhaControle: string;
@@ -23,6 +25,9 @@ const DOC_PATH = 'configuracoes/global';
 
 export const configuracoesService = {
   async fetchConfig(): Promise<SystemConfig> {
+    if (sessionStore.isDemo()) {
+      return demoService.getConfig();
+    }
     try {
       const docRef = doc(db, 'configuracoes', 'global');
       const docSnap = await getDoc(docRef);
@@ -40,6 +45,13 @@ export const configuracoesService = {
   },
 
   async updateConfig(config: Partial<SystemConfig>): Promise<void> {
+    if (sessionStore.isDemo()) {
+      const current = demoService.getConfig();
+      const merged = { ...current, ...config };
+      demoService.saveConfig(merged);
+      window.dispatchEvent(new Event('demoConfigUpdated'));
+      return;
+    }
     try {
       const docRef = doc(db, 'configuracoes', 'global');
       await setDoc(docRef, config, { merge: true });
@@ -49,6 +61,16 @@ export const configuracoesService = {
   },
 
   subscribeConfig(callback: (config: SystemConfig) => void, onError?: (error: unknown) => void) {
+    if (sessionStore.isDemo()) {
+      callback(demoService.getConfig());
+      const handleDemoUpdate = () => {
+        callback(demoService.getConfig());
+      };
+      window.addEventListener('demoConfigUpdated', handleDemoUpdate);
+      return () => {
+        window.removeEventListener('demoConfigUpdated', handleDemoUpdate);
+      };
+    }
     const docRef = doc(db, 'configuracoes', 'global');
     return onSnapshot(
       docRef,
@@ -70,3 +92,4 @@ export const configuracoesService = {
     );
   }
 };
+

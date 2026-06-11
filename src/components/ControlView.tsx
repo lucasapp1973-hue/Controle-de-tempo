@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
@@ -494,6 +494,146 @@ export default function ControlView({
   const firstPendingId = schedule.find(i => i.status === 'pending')?.id;
   const activeItem = schedule.find(i => i.id === activeId);
 
+  // Picture-in-Picture References & States
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isPiPActive, setIsPiPActive] = useState(false);
+
+  // Canvas drawing function for the Picture-in-Picture frame
+  const drawPiPTime = useCallback((time: number, isRunningState: boolean, currentMode: 'regressive' | 'progressive', currentInitial: number, colorString: string, currentActiveItem: any) => {
+    let canvas = canvasRef.current;
+    if (!canvas) {
+      canvas = document.createElement('canvas');
+      canvasRef.current = canvas;
+    }
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = 400;
+    const h = 250;
+    canvas.width = w;
+    canvas.height = h;
+
+    // Background color
+    ctx.fillStyle = '#020617'; // slate-950 dark background
+    ctx.fillRect(0, 0, w, h);
+
+    // Dynamic Title Header (Orador)
+    if (currentActiveItem) {
+      ctx.fillStyle = '#1e1b4b'; // indigo-950
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(15, 15, w - 30, 48, 8);
+      } else {
+        ctx.rect(15, 15, w - 30, 48);
+      }
+      ctx.fill();
+
+      // Speaker Name
+      ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#818cf8'; // indigo-400
+      ctx.textAlign = 'center';
+      ctx.fillText(currentActiveItem.name, w / 2, 33);
+
+      // Part Type
+      ctx.font = 'normal 11px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#94a3b8'; // slate-400
+      ctx.fillText(currentActiveItem.partType, w / 2, 50);
+    } else {
+      ctx.font = '900 11px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = '#64748b'; // slate-500
+      ctx.textAlign = 'center';
+      ctx.fillText('CRONÔMETRO DE ESTÚDIO', w / 2, 40);
+    }
+
+    // Huge digits in high contrast
+    ctx.font = '900 75px "JetBrains Mono", monospace';
+    ctx.fillStyle = colorString || '#10b981';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(formatTime(time), w / 2, h / 2 + 15);
+
+    // Status dot
+    ctx.fillStyle = isRunningState ? '#22c55e' : '#f59e0b';
+    ctx.beginPath();
+    ctx.arc(145, h - 25, 4, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Mode and action label
+    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#94a3b8';
+    ctx.textAlign = 'left';
+    ctx.fillText(
+      `${isRunningState ? 'RODANDO' : 'PAUSADO'} (Meta: ${formatTime(currentInitial)})`, 
+      157, 
+      h - 22
+    );
+  }, []);
+
+  const startPiP = async () => {
+    try {
+      if (!canvasRef.current) {
+        canvasRef.current = document.createElement('canvas');
+      }
+      if (!videoRef.current) {
+        const video = document.createElement('video');
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute('autoplay', 'true');
+        videoRef.current = video;
+      }
+
+      const canvas = canvasRef.current;
+      const video = videoRef.current;
+
+      // Draw initial frame
+      drawPiPTime(currentTime, isRunning, mode, initialDuration, activeColor, activeItem);
+
+      // Capture stream
+      const stream = (canvas as any).captureStream ? (canvas as any).captureStream(12) : null;
+      if (!stream) {
+        throw new Error('Navegador não suporta captureStream em Canvas.');
+      }
+      video.srcObject = stream;
+      
+      await video.play();
+      await (video as any).requestPictureInPicture();
+      setIsPiPActive(true);
+
+      video.addEventListener('leavepictureinpicture', () => {
+        setIsPiPActive(false);
+      });
+    } catch (err) {
+      console.error('Falha ao ativar Picture-in-Picture:', err);
+      alert('Seu navegador bloqueou ou não suporta o modo Picture-in-Picture de vídeo.');
+    }
+  };
+
+  // Sync Picture-in-Picture frames when time or states change in real-time
+  useEffect(() => {
+    if (isPiPActive && canvasRef.current) {
+      drawPiPTime(currentTime, isRunning, mode, initialDuration, activeColor, activeItem);
+    }
+  }, [currentTime, isRunning, mode, initialDuration, activeColor, activeItem, isPiPActive, drawPiPTime]);
+
+  // Handle visibility states to automatically start Picture-in-Picture if possible/permitted
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden' && isRunning && !isPiPActive) {
+        console.log("Minimização detectada com cronômetro em execução. Tentando Picture-in-Picture automático...");
+        try {
+          await startPiP();
+        } catch (e) {
+          console.warn("Auto-PiP rejeitado devido à limitação de gestos do navegador:", e);
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isRunning, isPiPActive, currentTime, mode, initialDuration, activeColor, activeItem]);
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
       {/* Dynamic Sync Top Bar */}
@@ -752,6 +892,23 @@ export default function ControlView({
                   Tempo Realizado: <span className="font-mono text-emerald-400 font-bold">{formatTime(elapsedTime)}</span> (Dif: {formatDifference(initialDuration, elapsedTime)})
                 </span>
               )}
+            </div>
+
+            {/* Picture-In-Picture Floating Accent Toggle */}
+            <div className="pt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={startPiP}
+                className={`py-2 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all shadow-md active:scale-95 cursor-pointer border ${
+                  isPiPActive
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 animate-pulse animate-duration-1000'
+                    : 'bg-slate-950 hover:bg-slate-900 border-white/10 text-slate-450 hover:text-white hover:border-amber-500/40 shadow-inner'
+                }`}
+                title="Deixa o cronômetro flutuando por cima de outras janelas mesmo se você minimizar ou trocar de aba"
+              >
+                <span>📺</span>
+                <span>{isPiPActive ? 'Timer Flutuante Ativo (PiP)' : 'Assistir em Tela Flutuante (PiP)'}</span>
+              </button>
             </div>
           </div>
 

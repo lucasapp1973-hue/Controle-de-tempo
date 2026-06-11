@@ -240,9 +240,9 @@ export default function App() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight"
+            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white"
           >
-            Sincronizador <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">de Tempo</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400">Sincronizador</span> de Tempo
           </motion.h1>
 
           <motion.p

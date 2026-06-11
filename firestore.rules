@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // configurations list & items
+    match /configuracoes/{configId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // meetings
+    match /reunioes/{reuniaoId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+
+      // sub-collection parts
+      match /partes/{parteId} {
+        allow read: if true;
+        allow create, update, delete: if true;
+      }
+    }
+
+    // participants database
+    match /participantes/{participanteId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+  }
+}

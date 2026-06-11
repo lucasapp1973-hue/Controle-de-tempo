@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   DoorOpen, Wifi, WifiOff, Calendar, Trash2, ChevronDown, ChevronUp, 
   Clock, AlertTriangle, CheckCircle2, XCircle, Search, Trash, 
-  Star, Users, BarChart3, FileText, FolderClosed, Copy, Check 
+  Star, Users, BarChart3, FileText, FolderClosed, Copy, Check, Loader2
 } from 'lucide-react';
-import { TimerState, CompletedMeeting } from '../types';
+import { TimerState, CompletedMeeting, ScheduleItem } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, Legend 
 } from 'recharts';
+import { reunioesService } from '../services/reunioesService';
 
 interface HistoryViewProps {
   timerState: TimerState;
@@ -27,7 +28,76 @@ export default function HistoryView({
   deleteMeeting,
   clearAllMeetings,
 }: HistoryViewProps) {
-  const { meetings = [] } = timerState;
+  // Load finished meetings from Firestore
+  const [firebaseMeetings, setFirebaseMeetings] = useState<CompletedMeeting[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadFirestoreMeetings = async () => {
+    try {
+      setLoading(true);
+      const list = await reunioesService.fetchReunioes();
+      // Only keep 'concluida' meetings for history view
+      const completedList = list.filter(m => m.status === 'concluida');
+
+      const mapped: CompletedMeeting[] = [];
+      for (const m of completedList) {
+        // Fetch parts for each meeting
+        const partes = await reunioesService.fetchPartes(m.id);
+        
+        // Convert to ScheduleItem
+        const scheduleItems: ScheduleItem[] = partes.map((p) => ({
+          id: p.id,
+          name: p.participante,
+          partType: p.tipoParte,
+          expectedTime: p.tempoPrevisto,
+          status: 'completed',
+          completedTime: p.tempoRealizado
+        }));
+
+        // Format date string to DD/MM/YYYY for title display
+        let formattedDateDisplay = m.data;
+        try {
+          if (m.data.includes('-')) {
+            const pts = m.data.split('-');
+            if (pts.length === 3) {
+              formattedDateDisplay = `${pts[2]}/${pts[1]}/${pts[0]}`;
+            }
+          }
+        } catch (e) {}
+
+        mapped.push({
+          id: m.id,
+          date: formattedDateDisplay,
+          title: `Presidida por ${m.presidente}`,
+          schedule: scheduleItems
+        });
+      }
+
+      // Sort by date DESC
+      mapped.sort((a,b) => {
+        const parseDate = (dStr: string) => {
+          if (dStr.includes('/')) {
+            const [d, m, y] = dStr.split('/');
+            return new Date(Number(y), Number(m)-1, Number(d)).getTime();
+          }
+          return new Date(dStr).getTime();
+        };
+        return parseDate(b.date) - parseDate(a.date);
+      });
+
+      setFirebaseMeetings(mapped);
+    } catch (err) {
+      console.error("Erro ao carregar reuniões do Firestore:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadFirestoreMeetings();
+  }, []);
+
+  const meetings = firebaseMeetings;
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -58,6 +128,33 @@ export default function HistoryView({
     }
   }, [meetings]);
 
+  const handleDeleteMeeting = async (meetingId: string) => {
+    if (!confirm("Deseja realmente apagar esta reunião do histórico permanentemente?")) return;
+    try {
+      await reunioesService.deleteReuniao(meetingId);
+      // Fallback call socket
+      deleteMeeting(meetingId);
+      // Reload from Firestore
+      await loadFirestoreMeetings();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleClearAllMeetings = async () => {
+    if (!confirm("ATENÇÃO: Deseja apagar TODO o histórico de reuniões permanentemente do Firestore?")) return;
+    try {
+      const list = await reunioesService.fetchReunioes();
+      for (const m of list) {
+        await reunioesService.deleteReuniao(m.id);
+      }
+      clearAllMeetings();
+      setFirebaseMeetings([]);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const toggleAccordion = (id: string) => {
     setExpandedIds(prev => ({
       ...prev,
@@ -67,21 +164,17 @@ export default function HistoryView({
 
   const handleDeleteClick = (id: string, title: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm(`Tem certeza que deseja excluir a reunião "${title}" do histórico?`)) {
-      deleteMeeting(id);
-      if (selectedReportId === id && meetings.length > 1) {
-        // Switch reported view if current is deleted
-        const remaining = meetings.filter(m => m.id !== id);
-        setSelectedReportId(remaining[0]?.id || '');
-      }
+    handleDeleteMeeting(id);
+    if (selectedReportId === id && meetings.length > 1) {
+      // Switch reported view if current is deleted
+      const remaining = meetings.filter(m => m.id !== id);
+      setSelectedReportId(remaining[0]?.id || '');
     }
   };
 
   const handleClearAllClick = () => {
-    if (confirm('Tem certeza que deseja limpar COMPLETAMENTE todo o histórico? Esta ação é irreversível.')) {
-      clearAllMeetings();
-      setSelectedReportId('');
-    }
+    handleClearAllMeetings();
+    setSelectedReportId('');
   };
 
   // Time format helper

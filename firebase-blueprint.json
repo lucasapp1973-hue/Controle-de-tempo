@@ -1,0 +1,155 @@
+{
+  "entities": {
+    "Configuracao": {
+      "title": "Configuracao",
+      "description": "Configurações globais do sistema de controle de tempo",
+      "type": "object",
+      "properties": {
+        "senhaControle": {
+          "type": "string",
+          "description": "Senha para acessar o modo de controle"
+        },
+        "alertaSegundos": {
+          "type": "number",
+          "description": "Tempo de tolerância para alerta em segundos"
+        },
+        "corTempoNormal": {
+          "type": "string",
+          "description": "Cor hexadecimal do cronometro normal"
+        },
+        "corTempoAlerta": {
+          "type": "string",
+          "description": "Cor hexadecimal do cronometro em alerta"
+        },
+        "corTempoEsgotado": {
+          "type": "string",
+          "description": "Cor hexadecimal do cronometro esgotado"
+        },
+        "modoPadraoCronometro": {
+          "type": "string",
+          "description": "Modo padrão inicial do cronômetro: progressive ou regressive"
+        }
+      },
+      "required": ["senhaControle", "alertaSegundos", "corTempoNormal", "corTempoAlerta", "corTempoEsgotado", "modoPadraoCronometro"]
+    },
+    "Reuniao": {
+      "title": "Reuniao",
+      "description": "Registro de uma reunião em si",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID único da reunião"
+        },
+        "data": {
+          "type": "string",
+          "description": "Data de realização no formato YYYY-MM-DD"
+        },
+        "presidente": {
+          "type": "string",
+          "description": "Nome do presidente que conduziu a reunião"
+        },
+        "criadaEm": {
+          "type": "string",
+          "description": "Data/hora de criação do registro"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["em_andamento", "concluida", "arquivada"],
+          "description": "Estado atual da reunião"
+        }
+      },
+      "required": ["id", "data", "presidente", "criadaEm", "status"]
+    },
+    "Parte": {
+      "title": "Parte",
+      "description": "Parte individual apresentada durante uma reunião",
+      "type": "object",
+      "properties": {
+        "participante": {
+          "type": "string",
+          "description": "Nome do participante designado"
+        },
+        "tipoParte": {
+          "type": "string",
+          "description": "Categoria/tipo da parte apresentada"
+        },
+        "tempoPrevisto": {
+          "type": "number",
+          "description": "Tempo estimado em segundos"
+        },
+        "tempoRealizado": {
+          "type": "number",
+          "description": "Tempo realmente gasto pelo participante em segundos"
+        },
+        "diferenca": {
+          "type": "number",
+          "description": "Diferença entre o tempo previsto e o realizado"
+        },
+        "observacao": {
+          "type": "string",
+          "description": "Observações livres"
+        },
+        "concluida": {
+          "type": "boolean",
+          "description": "Flag indicando conclusão da parte"
+        },
+        "registradoEm": {
+          "type": "string",
+          "description": "Fração de tempo ou timestamp que indica o registro"
+        }
+      },
+      "required": ["participante", "tipoParte", "tempoPrevisto", "tempoRealizado", "diferenca", "concluida"]
+    },
+    "Participante": {
+      "title": "Participante",
+      "description": "Cadastro de participantes para designações e histórico",
+      "type": "object",
+      "properties": {
+        "nome": {
+          "type": "string",
+          "description": "Nome completo do participante"
+        },
+        "ativo": {
+          "type": "boolean",
+          "description": "Indica se o participante continua ativo"
+        },
+        "criadoEm": {
+          "type": "string",
+          "description": "Timestamp de criação"
+        },
+        "observacoes": {
+          "type": "string",
+          "description": "Observações adicionais do cadastro"
+        }
+      },
+      "required": ["nome", "ativo", "criadoEm"]
+    }
+  },
+  "firestore": {
+    "configuracoes": {
+      "schema": {
+        "$ref": "#/entities/Configuracao"
+      },
+      "description": "Coleção de configurações do sistema baseadas em documentos de configuração"
+    },
+    "reunioes": {
+      "schema": {
+        "$ref": "#/entities/Reuniao"
+      },
+      "description": "Coleção principal de reuniões registradas"
+    },
+    "reunioes/{reuniaoId}/partes": {
+      "schema": {
+        "$ref": "#/entities/Parte"
+      },
+      "description": "Subcoleção contendo as partes realizadas em cada reunião"
+    },
+    "participantes": {
+      "schema": {
+        "$ref": "#/entities/Participante"
+      },
+      "description": "Coleção contendo todos os participantes cadastrados no controle de tempo"
+    }
+  }
+}

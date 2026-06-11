@@ -1,7 +1,10 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
+import { reunioesService } from '../services/reunioesService';
+import { participantesService } from '../services/participantesService';
+import { configuracoesService } from '../services/configuracoesService';
 
 const NOMES_OPTIONS = [
   "1. Abel Domiciano",
@@ -63,6 +66,7 @@ interface ControlViewProps {
   activateScheduleItem: (id: string) => void;
   completeScheduleItem: (id: string) => void;
   resetSchedule: () => void;
+  systemConfig?: any;
 }
 
 export default function ControlView({
@@ -83,41 +87,156 @@ export default function ControlView({
   activateScheduleItem,
   completeScheduleItem,
   resetSchedule,
+  systemConfig,
 }: ControlViewProps) {
   const { isRunning, mode, currentTime, initialDuration, schedule = [], activeId, elapsedTime } = timerState;
 
+  // Parameters states for custom thresholds and colors
+  const alertThreshold = systemConfig?.alertaSegundos ?? 20;
+  const [currentMeetingId, setCurrentMeetingId] = useState<string>('');
+  const [presidente, setPresidente] = useState<string>('');
+
+  // Local state for Collapsible Configuration Box
+  const [showParamsCollapse, setShowParamsCollapse] = useState(false);
+  const [paramAlertaSegundos, setParamAlertaSegundos] = useState(20);
+  const [paramSenhaControle, setParamSenhaControle] = useState('2121');
+  const [paramCorTempoNormal, setParamCorTempoNormal] = useState('#10b981');
+  const [paramCorTempoAlerta, setParamCorTempoAlerta] = useState('#f59e0b');
+  const [paramCorTempoEsgotado, setParamCorTempoEsgotado] = useState('#ef4444');
+
+  useEffect(() => {
+    if (systemConfig) {
+      setParamAlertaSegundos(systemConfig.alertaSegundos ?? 20);
+      setParamSenhaControle(systemConfig.senhaControle ?? '2121');
+      setParamCorTempoNormal(systemConfig.corTempoNormal ?? '#10b981');
+      setParamCorTempoAlerta(systemConfig.corTempoAlerta ?? '#f59e0b');
+      setParamCorTempoEsgotado(systemConfig.corTempoEsgotado ?? '#ef4444');
+    }
+  }, [systemConfig]);
+
+  // Load and bootstrap active meeting and default participants list
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        // 1. Check or create active meeting for today
+        const meetingsList = await reunioesService.fetchReunioes();
+        const activeMeeting = meetingsList.find(m => m.status === 'em_andamento');
+        if (activeMeeting) {
+          setCurrentMeetingId(activeMeeting.id);
+          setPresidente(activeMeeting.presidente || '');
+        } else {
+          const today = new Date().toISOString().split('T')[0];
+          const newId = await reunioesService.createReuniao({
+            data: today,
+            presidente: 'Não informado',
+            status: 'em_andamento'
+          });
+          if (newId) {
+            setCurrentMeetingId(newId);
+          }
+        }
+
+        // 2. Populate participants list in Firestore of NOMES_OPTIONS if empty
+        const participantsCheck = await participantesService.fetchParticipantes();
+        if (participantsCheck.length === 0) {
+          console.log("Auto-Bootstrap: Inicializando tabela de participantes...");
+          for (const opt of NOMES_OPTIONS) {
+            if (opt !== 'divider') {
+              const cleanNome = opt.replace(/^\d+\.\s*/, '');
+              await participantesService.addParticipante(cleanNome, 'Cadastrado automaticamente na inicialização');
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Falha ao inicializar sessões e dados no Firestore:", err);
+      }
+    };
+    initData();
+  }, []);
+
+  // Smart Migration: move local meetings in timerState.meetings to Firestore if database is empty
+  useEffect(() => {
+    if (timerState.meetings && timerState.meetings.length > 0) {
+      const runMigration = async () => {
+        try {
+          const fbMeetings = await reunioesService.fetchReunioes();
+          const closedFb = fbMeetings.filter(m => m.status === 'concluida');
+          if (closedFb.length === 0) {
+            console.log("Migração Inteligente: Sincronizando reuniões locais para o Firestore...");
+            for (const lMeeting of timerState.meetings) {
+              let formattedDate = new Date().toISOString().split('T')[0];
+              try {
+                if (lMeeting.date.includes('/')) {
+                  const pts = lMeeting.date.split('/');
+                  if (pts.length === 3) {
+                    formattedDate = `${pts[2]}-${pts[1].padStart(2, '0')}-${pts[0].padStart(2, '0')}`;
+                  }
+                }
+              } catch (e) {}
+
+              const pres = lMeeting.title.replace('Presidida por ', '');
+              const newMeetingId = await reunioesService.createReuniao({
+                data: formattedDate,
+                presidente: pres || 'Não informado',
+                status: 'concluida'
+              });
+
+              if (newMeetingId) {
+                for (const part of lMeeting.schedule) {
+                  await reunioesService.addParteToReuniao(newMeetingId, {
+                    participante: part.name,
+                    tipoParte: part.partType,
+                    tempoPrevisto: part.expectedTime,
+                    tempoRealizado: part.completedTime ?? part.expectedTime,
+                    diferenca: (part.completedTime ?? part.expectedTime) - part.expectedTime,
+                    observacao: '',
+                    concluida: part.status === 'completed'
+                  });
+                }
+              }
+            }
+            console.log("Migração de Reuniões concluída.");
+          }
+        } catch (e) {
+          console.error("Erro na migração inteligente:", e);
+        }
+      };
+      runMigration();
+    }
+  }, [timerState.meetings]);
+
   // Calculate stopwatch card coloring matching the exact Display rules
   let cardBgClass = 'bg-slate-950/20 border-slate-800';
-  let cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+  let activeColor = systemConfig?.corTempoNormal ?? '#10b981';
   let cardStateLabel = '🟢 Tempo Normal';
 
   if (mode === 'regressive') {
     if (currentTime <= 0) {
       cardBgClass = 'bg-red-950/30 border-red-500/40 text-red-100';
-      cardTextColorClass = 'text-red-550 drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]';
+      activeColor = systemConfig?.corTempoEsgotado ?? '#ef4444';
       cardStateLabel = '🔴 Tempo Esgotado';
-    } else if (currentTime <= 20) {
+    } else if (currentTime <= alertThreshold) {
       cardBgClass = 'bg-amber-950/20 border-amber-500/35 text-amber-100';
-      cardTextColorClass = 'text-amber-450 drop-shadow-[0_4px_12px_rgba(245,158,11,0.25)]';
-      cardStateLabel = '🟡 Últimos 20 segundos';
+      activeColor = systemConfig?.corTempoAlerta ?? '#f59e0b';
+      cardStateLabel = `🟡 Últimos ${alertThreshold} segundos`;
     } else {
       cardBgClass = 'bg-emerald-950/10 border-emerald-500/25 text-emerald-100';
-      cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+      activeColor = systemConfig?.corTempoNormal ?? '#10b981';
       cardStateLabel = '🟢 Tempo Normal';
     }
   } else {
     const timeRemaining = Math.max(0, initialDuration - currentTime);
     if (currentTime >= initialDuration) {
       cardBgClass = 'bg-red-950/30 border-red-500/40 text-red-100';
-      cardTextColorClass = 'text-red-550 drop-shadow-[0_4px_12px_rgba(239,68,68,0.25)]';
+      activeColor = systemConfig?.corTempoEsgotado ?? '#ef4444';
       cardStateLabel = '🔴 Tempo Esgotado';
-    } else if (timeRemaining <= 20) {
+    } else if (timeRemaining <= alertThreshold) {
       cardBgClass = 'bg-amber-950/20 border-amber-500/35 text-amber-100';
-      cardTextColorClass = 'text-amber-450 drop-shadow-[0_4px_12px_rgba(245,158,11,0.25)]';
-      cardStateLabel = '🟡 Últimos 20 segundos';
+      activeColor = systemConfig?.corTempoAlerta ?? '#f59e0b';
+      cardStateLabel = `🟡 Últimos ${alertThreshold} segundos`;
     } else {
       cardBgClass = 'bg-emerald-950/10 border-emerald-500/25 text-emerald-100';
-      cardTextColorClass = 'text-emerald-400 drop-shadow-[0_4px_12px_rgba(16,185,129,0.15)]';
+      activeColor = systemConfig?.corTempoNormal ?? '#10b981';
       cardStateLabel = '🟢 Tempo Normal';
     }
   }
@@ -142,30 +261,30 @@ export default function ControlView({
   const [showEditPartTypeDropdown, setShowEditPartTypeDropdown] = useState(false);
   const [showEditMinutesDropdown, setShowEditMinutesDropdown] = useState(false);
 
-  // Operator Vibration Trigger on 20s remaining and completion/overrun
+  // Operator Vibration Trigger on threshold remaining and completion/overrun
   useEffect(() => {
     if (!isRunning || !('vibrate' in navigator)) return;
 
-    let remains20s = false;
+    let remainsThreshold = false;
     let ended = false;
 
     if (mode === 'regressive') {
-      if (currentTime === 20) {
-        remains20s = true;
+      if (currentTime === alertThreshold) {
+        remainsThreshold = true;
       } else if (currentTime === 0) {
         ended = true;
       }
     } else {
       // Progressive mode counts up to initialDuration
       const diff = initialDuration - currentTime;
-      if (diff === 20) {
-        remains20s = true;
+      if (diff === alertThreshold) {
+        remainsThreshold = true;
       } else if (diff === 0) {
         ended = true;
       }
     }
 
-    if (remains20s) {
+    if (remainsThreshold) {
       try {
         navigator.vibrate(200); // short vibrate (200ms)
       } catch (err) {
@@ -178,7 +297,112 @@ export default function ControlView({
         console.warn('Vibration failed:', err);
       }
     }
-  }, [currentTime, isRunning, mode, initialDuration]);
+  }, [currentTime, isRunning, mode, initialDuration, alertThreshold]);
+
+  // Save global parameters to Firestore
+  const handleSaveParams = async (e: FormEvent) => {
+    e.preventDefault();
+    try {
+      await configuracoesService.updateConfig({
+        alertaSegundos: Number(paramAlertaSegundos),
+        senhaControle: paramSenhaControle,
+        corTempoNormal: paramCorTempoNormal,
+        corTempoAlerta: paramCorTempoAlerta,
+        corTempoEsgotado: paramCorTempoEsgotado
+      });
+      alert("Parâmetros do sistema salvos com sucesso no Firestore!");
+      setShowParamsCollapse(false);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar parâmetros.");
+    }
+  };
+
+  // Handle completing active part and appending to meeting in Firestore
+  const handleNextPart = async () => {
+    if (!activeId) return;
+
+    // Send complete to socket to advances automatically
+    completeScheduleItem(activeId);
+
+    const activeItem = schedule.find(i => i.id === activeId);
+    if (activeItem && currentMeetingId) {
+      try {
+        const cleanNome = activeItem.name.replace(/^\d+\.\s*/, '');
+        
+        // Save part to Firestore
+        await reunioesService.addParteToReuniao(currentMeetingId, {
+          participante: cleanNome,
+          tipoParte: activeItem.partType,
+          tempoPrevisto: activeItem.expectedTime,
+          tempoRealizado: elapsedTime,
+          diferenca: elapsedTime - activeItem.expectedTime,
+          observacao: '',
+          concluida: true
+        });
+
+        // Ensure participant exists in database
+        const allP = await participantesService.fetchParticipantes();
+        if (!allP.some(p => p.nome.trim().toLowerCase() === cleanNome.trim().toLowerCase())) {
+          await participantesService.addParticipante(cleanNome, 'Cadastrado automaticamente via cronômetro');
+        }
+      } catch (err) {
+        console.error("Erro ao arquivar parte no Firestore:", err);
+      }
+    }
+  };
+
+  // Handle locking the meeting as completed
+  const handleRegisterMeetingAndClose = async (prefTitle: string = '') => {
+    if (!currentMeetingId) return;
+
+    try {
+      // Complete meeting in Firestore
+      await reunioesService.updateReuniao(currentMeetingId, {
+        status: 'concluida',
+        data: new Date().toISOString().split('T')[0],
+        presidente: presidente || 'Não informado'
+      });
+
+      // Synchronize any remainings from schedule state as well
+      for (const item of schedule) {
+        if (item.status === 'completed') {
+          const cleanNome = item.name.replace(/^\d+\.\s*/, '');
+          const existingPartes = await reunioesService.fetchPartes(currentMeetingId);
+          if (!existingPartes.some(p => p.participante.toLowerCase() === cleanNome.toLowerCase() && p.tipoParte === item.partType)) {
+            await reunioesService.addParteToReuniao(currentMeetingId, {
+              participante: cleanNome,
+              tipoParte: item.partType,
+              tempoPrevisto: item.expectedTime,
+              tempoRealizado: item.completedTime ?? item.expectedTime,
+              diferenca: (item.completedTime ?? item.expectedTime) - item.expectedTime,
+              observacao: '',
+              concluida: true
+            });
+          }
+        }
+      }
+
+      // Sync via Socket.IO
+      registerMeeting?.(prefTitle);
+
+      // Instantly generate a new active meeting doc for next run
+      const today = new Date().toISOString().split('T')[0];
+      const newId = await reunioesService.createReuniao({
+        data: today,
+        presidente: 'Não informado',
+        status: 'em_andamento'
+      });
+      if (newId) {
+        setCurrentMeetingId(newId);
+        setPresidente('');
+      }
+
+      alert(`Reunião registrada com sucesso no Firestore!`);
+    } catch (err) {
+      console.error("Erro ao arquivar reunião:", err);
+    }
+  };
 
   // Handle immediate mode selection and sync to all screens
   const handleModeChange = (targetMode: TimerMode) => {
@@ -311,6 +535,123 @@ export default function ControlView({
       {/* Main Control Panel Workspace */}
       <main className="flex-1 w-full max-w-2xl mx-auto p-4 space-y-6 overflow-y-auto pb-12 mt-2">
         
+        {/* PARÂMETROS DO SISTEMA (FIRESTORE SYNC) */}
+        <section className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+          <button
+            type="button"
+            onClick={() => setShowParamsCollapse(!showParamsCollapse)}
+            className="w-full flex items-center justify-between p-4 font-bold text-slate-350 text-xs uppercase tracking-wider hover:bg-slate-900/80 transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-2">
+              <Settings className="w-4 h-4 text-indigo-400" />
+              Parâmetros do Sistema (Firebase)
+            </span>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showParamsCollapse ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {showParamsCollapse && (
+            <form onSubmit={handleSaveParams} className="p-4 border-t border-slate-850 bg-slate-950/40 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Senha de Acesso (Controle)</label>
+                  <input
+                    type="text"
+                    value={paramSenhaControle}
+                    onChange={(e) => setParamSenhaControle(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-850 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono text-white text-center"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Limite de Alerta (Segundos)</label>
+                  <input
+                    type="number"
+                    value={paramAlertaSegundos}
+                    onChange={(e) => setParamAlertaSegundos(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-850 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white font-mono text-center"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-850/60">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Paleta de Cores do Display</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center space-y-1">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Normal</span>
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <input
+                        type="color"
+                        value={paramCorTempoNormal}
+                        onChange={(e) => setParamCorTempoNormal(e.target.value)}
+                        className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
+                      />
+                      <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoNormal}</span>
+                    </div>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Alerta</span>
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <input
+                        type="color"
+                        value={paramCorTempoAlerta}
+                        onChange={(e) => setParamCorTempoAlerta(e.target.value)}
+                        className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
+                      />
+                      <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoAlerta}</span>
+                    </div>
+                  </div>
+                  <div className="text-center space-y-1">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Esgotado</span>
+                    <div className="flex items-center gap-1.5 justify-center">
+                      <input
+                        type="color"
+                        value={paramCorTempoEsgotado}
+                        onChange={(e) => setParamCorTempoEsgotado(e.target.value)}
+                        className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
+                      />
+                      <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoEsgotado}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2 border-t border-slate-850/60">
+                <button
+                  type="submit"
+                  className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
+
+        {/* INPUT DE PRESIDENTE DA REUNIÃO */}
+        <section className="bg-slate-900/40 border border-slate-850 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Presidente de Hoje</span>
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-emerald-400" />
+              <input
+                type="text"
+                placeholder="Nome do Presidente..."
+                value={presidente}
+                onChange={async (e) => {
+                  setPresidente(e.target.value);
+                  if (currentMeetingId) {
+                    await reunioesService.updateReuniao(currentMeetingId, { presidente: e.target.value });
+                  }
+                }}
+                className="bg-transparent border-0 font-extrabold text-sm text-white focus:outline-none focus:ring-0 p-0 w-full"
+              />
+            </div>
+          </div>
+          <div className="text-[10px] text-slate-500 md:text-right hidden sm:block">
+            <span>Sessão ativa: <span className="font-mono text-slate-400">{currentMeetingId ? currentMeetingId.substring(0, 8) : 'Carregando...'}</span></span>
+          </div>
+        </section>
+
         {/* NEW SIMPLIFIED STOPWATCH MAIN CARD WITH DYNAMIC DISPLAY STATES */}
         <section id="sync-preview-card" className={`border rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all duration-700 ${cardBgClass}`}>
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -338,7 +679,7 @@ export default function ControlView({
             )}
 
             {/* Giant Centralized Digits */}
-            <div className={`text-6xl md:text-7xl font-mono font-black tracking-widest leading-none my-2 transition-colors duration-500 ${cardTextColorClass}`}>
+            <div style={{ color: activeColor }} className="text-6xl md:text-7xl font-mono font-black tracking-widest leading-none my-2 transition-colors duration-500">
               {formatTime(currentTime)}
             </div>
 
@@ -380,7 +721,7 @@ export default function ControlView({
             {/* Próxima Parte Button */}
             <button
               type="button"
-              onClick={() => activeId && completeScheduleItem(activeId)}
+              onClick={handleNextPart}
               disabled={!isConnected || !activeId}
               className="py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-950/20 cursor-pointer text-sm"
               title="Registra tempo da parte atual e avança automaticamente para o próximo participante"
@@ -625,7 +966,7 @@ export default function ControlView({
                     const todayStr = new Date().toLocaleDateString('pt-BR');
                     const titleInput = prompt("Digite o nome da reunião para registrar no histórico:", `Reunião de ${todayStr}`);
                     if (titleInput !== null) {
-                      registerMeeting?.(titleInput);
+                      handleRegisterMeetingAndClose(titleInput);
                     }
                   }}
                   className="py-2.5 px-4 bg-indigo-600 hover:bg-indigo-550 font-bold text-xs text-white uppercase tracking-wider rounded-xl transition-all hover:shadow-indigo-550/20 shadow-md flex items-center gap-1.5 active:scale-95 cursor-pointer border border-indigo-500/45"

@@ -7,6 +7,7 @@ import ControlView from './components/ControlView';
 import SuperintendentView from './components/SuperintendentView';
 import HistoryView from './components/HistoryView';
 import HourglassAnimated from './components/HourglassAnimated';
+import { configuracoesService, SystemConfig, DEFAULT_CONFIG } from './services/configuracoesService';
 
 export default function App() {
   const {
@@ -36,6 +37,15 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
+
+  useEffect(() => {
+    // Subscribe to configurations from Firestore
+    const unsubscribe = configuracoesService.subscribeConfig((config) => {
+      setSystemConfig(config);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const isAuthorized = () => {
     const authTimestamp = localStorage.getItem('control_auth_timestamp');
@@ -58,7 +68,7 @@ export default function App() {
 
   const handlePasswordSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (password === '2121') {
+    if (password === (systemConfig?.senhaControle || '2121')) {
       localStorage.setItem('control_auth_timestamp', Date.now().toString());
       setShowPasswordPrompt(false);
       selectMode('control');
@@ -135,6 +145,7 @@ export default function App() {
           timerState={timerState}
           isConnected={isConnected}
           onBack={handleBackToPortal}
+          systemConfig={systemConfig}
         />
       </motion.div>
     );
@@ -168,6 +179,7 @@ export default function App() {
           activateScheduleItem={activateScheduleItem}
           completeScheduleItem={completeScheduleItem}
           resetSchedule={resetSchedule}
+          systemConfig={systemConfig}
         />
       </motion.div>
     );

@@ -6,9 +6,10 @@ interface DisplayViewProps {
   timerState: TimerState;
   isConnected: boolean;
   onBack: () => void;
+  systemConfig?: any;
 }
 
-export default function DisplayView({ timerState, isConnected, onBack }: DisplayViewProps) {
+export default function DisplayView({ timerState, isConnected, onBack, systemConfig }: DisplayViewProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,29 +80,27 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
     return `${pad(mins)}:${pad(secs)}`;
   };
 
-  // Color logic according to exact rules:
-  // Verde = tempo normal
-  // Amarelo = restam 20 segundos
-  // Vermelho = tempo esgotado
-  let bgColorClass = 'bg-emerald-600'; // Default Green
+  // Color logic according to parameters
+  const alertThreshold = systemConfig?.alertaSegundos ?? 20;
+  let bgColorStyle = systemConfig?.corTempoNormal ?? '#10b981';
 
   if (mode === 'regressive') {
     if (currentTime <= 0) {
-      bgColorClass = 'bg-red-600'; // Red
-    } else if (currentTime <= 20) {
-      bgColorClass = 'bg-amber-500'; // Yellow
+      bgColorStyle = systemConfig?.corTempoEsgotado ?? '#ef4444';
+    } else if (currentTime <= alertThreshold) {
+      bgColorStyle = systemConfig?.corTempoAlerta ?? '#f59e0b';
     } else {
-      bgColorClass = 'bg-emerald-600'; // Green
+      bgColorStyle = systemConfig?.corTempoNormal ?? '#10b981';
     }
   } else {
     // Progressive Mode
     const timeRemaining = Math.max(0, initialDuration - currentTime);
     if (currentTime >= initialDuration) {
-      bgColorClass = 'bg-red-600'; // Red
-    } else if (timeRemaining <= 20) {
-      bgColorClass = 'bg-amber-500'; // Yellow
+      bgColorStyle = systemConfig?.corTempoEsgotado ?? '#ef4444';
+    } else if (timeRemaining <= alertThreshold) {
+      bgColorStyle = systemConfig?.corTempoAlerta ?? '#f59e0b';
     } else {
-      bgColorClass = 'bg-emerald-600'; // Green
+      bgColorStyle = systemConfig?.corTempoNormal ?? '#10b981';
     }
   }
 
@@ -109,7 +108,8 @@ export default function DisplayView({ timerState, isConnected, onBack }: Display
     <div
       id="display-container"
       ref={displayContainerRef}
-      className={`relative w-full h-screen ${bgColorClass} flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none`}
+      style={{ backgroundColor: bgColorStyle }}
+      className="relative w-full h-screen flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none"
     >
       {/* Subtle overlay for physical display look */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/10 pointer-events-none" />

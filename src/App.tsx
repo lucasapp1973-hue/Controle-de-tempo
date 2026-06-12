@@ -230,18 +230,21 @@ export default function App() {
   if (appMode === 'display') {
     return (
       <motion.div
+        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-black z-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
         {renderDemoBanner()}
-        <DisplayView
-          timerState={timerState}
-          isConnected={isConnected}
-          onBack={handleBackToPortal}
-          systemConfig={systemConfig}
-        />
+        <div className="flex-1 relative overflow-hidden">
+          <DisplayView
+            timerState={timerState}
+            isConnected={isConnected}
+            onBack={handleBackToPortal}
+            systemConfig={systemConfig}
+          />
+        </div>
       </motion.div>
     );
   }
@@ -250,14 +253,14 @@ export default function App() {
   if (appMode === 'control') {
     return (
       <motion.div
-        className="min-h-screen flex flex-col"
+        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -15 }}
         transition={{ duration: 0.3 }}
       >
         {renderDemoBanner()}
-        <div className="flex-1">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           <ControlView
             timerState={timerState}
             isConnected={isConnected}
@@ -288,17 +291,20 @@ export default function App() {
   if (appMode === 'superintendent') {
     return (
       <motion.div
+        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
         {renderDemoBanner()}
-        <SuperintendentView
-          timerState={timerState}
-          isConnected={isConnected}
-          onBack={handleBackToPortal}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <SuperintendentView
+            timerState={timerState}
+            isConnected={isConnected}
+            onBack={handleBackToPortal}
+          />
+        </div>
       </motion.div>
     );
   }
@@ -307,26 +313,29 @@ export default function App() {
   if (appMode === 'history') {
     return (
       <motion.div
+        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
         {renderDemoBanner()}
-        <HistoryView
-          timerState={timerState}
-          isConnected={isConnected}
-          onBack={handleBackToPortal}
-          deleteMeeting={deleteMeeting}
-          clearAllMeetings={clearAllMeetings}
-        />
+        <div className="flex-1 overflow-y-auto">
+          <HistoryView
+            timerState={timerState}
+            isConnected={isConnected}
+            onBack={handleBackToPortal}
+            deleteMeeting={deleteMeeting}
+            clearAllMeetings={clearAllMeetings}
+          />
+        </div>
       </motion.div>
     );
   }
 
   // Render Selection Portal
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden font-sans">
+    <div className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-y-auto bg-slate-950 text-slate-100 flex flex-col justify-between relative font-sans">
       
       {/* Glow Effects in background */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />

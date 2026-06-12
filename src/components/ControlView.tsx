@@ -494,174 +494,7 @@ export default function ControlView({
   const firstPendingId = schedule.find(i => i.status === 'pending')?.id;
   const activeItem = schedule.find(i => i.id === activeId);
 
-  // Picture-in-Picture References & States
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [isPiPActive, setIsPiPActive] = useState(false);
 
-  // Auto PiP on Start setting (remembered in localStorage)
-  const [autoPiPOnStart, setAutoPiPOnStart] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('auto_pip_on_start');
-      return saved !== 'false';
-    } catch (_) {
-      return true;
-    }
-  });
-
-  const toggleAutoPiPOnStart = () => {
-    const newValue = !autoPiPOnStart;
-    setAutoPiPOnStart(newValue);
-    try {
-      localStorage.setItem('auto_pip_on_start', String(newValue));
-    } catch (_) {}
-  };
-
-  // Canvas drawing function for the Picture-in-Picture frame
-  const drawPiPTime = useCallback((time: number, isRunningState: boolean, currentMode: 'regressive' | 'progressive', currentInitial: number, colorString: string, currentActiveItem: any) => {
-    let canvas = canvasRef.current;
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvasRef.current = canvas;
-    }
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const w = 400;
-    const h = 250;
-    canvas.width = w;
-    canvas.height = h;
-
-    // Background color
-    ctx.fillStyle = '#020617'; // slate-950 dark background
-    ctx.fillRect(0, 0, w, h);
-
-    // Dynamic Title Header (Orador)
-    if (currentActiveItem) {
-      ctx.fillStyle = '#1e1b4b'; // indigo-950
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(15, 15, w - 30, 48, 8);
-      } else {
-        ctx.rect(15, 15, w - 30, 48);
-      }
-      ctx.fill();
-
-      // Speaker Name
-      ctx.font = 'bold 15px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = '#818cf8'; // indigo-400
-      ctx.textAlign = 'center';
-      ctx.fillText(currentActiveItem.name, w / 2, 33);
-
-      // Part Type
-      ctx.font = 'normal 11px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = '#94a3b8'; // slate-400
-      ctx.fillText(currentActiveItem.partType, w / 2, 50);
-    } else {
-      ctx.font = '900 11px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = '#64748b'; // slate-500
-      ctx.textAlign = 'center';
-      ctx.fillText('CRONÔMETRO DE ESTÚDIO', w / 2, 40);
-    }
-
-    // Huge digits in high contrast
-    ctx.font = '900 75px "JetBrains Mono", monospace';
-    ctx.fillStyle = colorString || '#10b981';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(formatTime(time), w / 2, h / 2 + 15);
-
-    // Status dot
-    ctx.fillStyle = isRunningState ? '#22c55e' : '#f59e0b';
-    ctx.beginPath();
-    ctx.arc(145, h - 25, 4, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Mode and action label
-    ctx.font = 'bold 11px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'left';
-    ctx.fillText(
-      `${isRunningState ? 'RODANDO' : 'PAUSADO'} (Meta: ${formatTime(currentInitial)})`, 
-      157, 
-      h - 22
-    );
-  }, []);
-
-  const startPiP = async () => {
-    try {
-      if (!canvasRef.current) {
-        canvasRef.current = document.createElement('canvas');
-      }
-      if (!videoRef.current) {
-        const video = document.createElement('video');
-        video.muted = true;
-        video.playsInline = true;
-        video.setAttribute('autoplay', 'true');
-        videoRef.current = video;
-      }
-
-      const canvas = canvasRef.current;
-      const video = videoRef.current;
-
-      // Draw initial frame
-      drawPiPTime(currentTime, isRunning, mode, initialDuration, activeColor, activeItem);
-
-      // Capture stream
-      const stream = (canvas as any).captureStream ? (canvas as any).captureStream(12) : null;
-      if (!stream) {
-        throw new Error('Navegador não suporta captureStream em Canvas.');
-      }
-      video.srcObject = stream;
-      
-      await video.play();
-      await (video as any).requestPictureInPicture();
-      setIsPiPActive(true);
-
-      video.addEventListener('leavepictureinpicture', () => {
-        setIsPiPActive(false);
-      });
-    } catch (err) {
-      console.error('Falha ao ativar Picture-in-Picture:', err);
-      alert('Seu navegador bloqueou ou não suporta o modo Picture-in-Picture de vídeo.');
-    }
-  };
-
-  const handlePlayWithAutoPiP = async () => {
-    startTimer();
-    if (autoPiPOnStart && !isPiPActive) {
-      try {
-        await startPiP();
-      } catch (err) {
-        console.warn('Auto play PiP request failed:', err);
-      }
-    }
-  };
-
-  // Sync Picture-in-Picture frames when time or states change in real-time
-  useEffect(() => {
-    if (isPiPActive && canvasRef.current) {
-      drawPiPTime(currentTime, isRunning, mode, initialDuration, activeColor, activeItem);
-    }
-  }, [currentTime, isRunning, mode, initialDuration, activeColor, activeItem, isPiPActive, drawPiPTime]);
-
-  // Handle visibility states to automatically start Picture-in-Picture if possible/permitted
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'hidden' && isRunning && !isPiPActive) {
-        console.log("Minimização detectada com cronômetro em execução. Tentando Picture-in-Picture automático...");
-        try {
-          await startPiP();
-        } catch (e) {
-          console.warn("Auto-PiP rejeitado devido à limitação de gestos do navegador:", e);
-        }
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isRunning, isPiPActive, currentTime, mode, initialDuration, activeColor, activeItem]);
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
@@ -923,32 +756,7 @@ export default function ControlView({
               )}
             </div>
 
-            {/* Picture-In-Picture Accent Controls */}
-            <div className="pt-3 flex flex-col items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={startPiP}
-                className={`py-2 px-5 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer border ${
-                  isPiPActive
-                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 font-extrabold animate-pulse'
-                    : 'bg-slate-950 hover:bg-slate-900 border-white/5 text-slate-400 hover:text-white hover:border-amber-500/30'
-                }`}
-                title="Deixa o mini-cronômetro flutuando por cima de outras janelas mesmo se você minimizar ou trocar de aba"
-              >
-                <span>⏱</span>
-                <span>{isPiPActive ? 'Mini Timer PiP Ativo' : 'Ativar Mini Timer PiP'}</span>
-              </button>
 
-              <label className="flex items-center gap-2 text-[10px] text-slate-400 select-none cursor-pointer hover:text-slate-200 transition-colors">
-                <input
-                  type="checkbox"
-                  checked={autoPiPOnStart}
-                  onChange={toggleAutoPiPOnStart}
-                  className="rounded border-slate-800 bg-slate-950 text-amber-500 focus:ring-amber-500 focus:ring-opacity-25 w-3.5 h-3.5"
-                />
-                <span>Habilitar PiP automático ao clicar em Iniciar</span>
-              </label>
-            </div>
           </div>
 
           {/* STREAMLINED OPERATION BUTTONS */}
@@ -957,7 +765,7 @@ export default function ControlView({
             {!isRunning ? (
               <button
                 type="button"
-                onClick={handlePlayWithAutoPiP}
+                onClick={startTimer}
                 disabled={!isConnected}
                 className="py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 cursor-pointer text-sm"
               >

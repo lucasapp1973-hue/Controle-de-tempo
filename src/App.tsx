@@ -129,12 +129,62 @@ export default function App() {
     document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('wheel', handleWheel, { passive: false });
 
+    // Direct reload auto-fullscreen helper on first interaction
+    const handleGlobalInteraction = () => {
+      const currentUrl = new URL(window.location.href);
+      const activeMode = currentUrl.searchParams.get('mode');
+      if (activeMode && activeMode !== 'portal' && !document.fullscreenElement) {
+        // Find documentElement and call requestFullscreen
+        const docEl = document.documentElement;
+        if (docEl.requestFullscreen) {
+          docEl.requestFullscreen().catch(() => {});
+        } else if ((docEl as any).webkitRequestFullscreen) {
+          (docEl as any).webkitRequestFullscreen();
+        }
+      }
+    };
+    document.addEventListener('click', handleGlobalInteraction);
+    document.addEventListener('touchstart', handleGlobalInteraction);
+
     return () => {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('wheel', handleWheel);
+      document.removeEventListener('click', handleGlobalInteraction);
+      document.removeEventListener('touchstart', handleGlobalInteraction);
     };
   }, []);
+
+  const enterFullscreen = () => {
+    try {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch((err) => {
+          console.warn('Requisição de tela cheia rejeitada ou indisponível:', err);
+        });
+      } else if ((docEl as any).webkitRequestFullscreen) {
+        (docEl as any).webkitRequestFullscreen();
+      } else if ((docEl as any).msRequestFullscreen) {
+        (docEl as any).msRequestFullscreen();
+      }
+    } catch (err) {
+      console.warn('Erro ao habilitar tela cheia:', err);
+    }
+  };
+
+  const exitFullscreen = () => {
+    try {
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if ((document as any).webkitExitFullscreen) {
+          (document as any).webkitExitFullscreen();
+        } else if ((document as any).msExitFullscreen) {
+          (document as any).msExitFullscreen();
+        }
+      }
+    } catch (_) {}
+  };
 
   // Update URL on state change to allow direct bookmarking
   const selectMode = (mode: 'display' | 'control' | 'superintendent' | 'history') => {
@@ -142,6 +192,7 @@ export default function App() {
     const url = new URL(window.location.href);
     url.searchParams.set('mode', mode);
     window.history.pushState({}, '', url.toString());
+    enterFullscreen();
   };
 
   const handleBackToPortal = () => {
@@ -149,6 +200,7 @@ export default function App() {
     const url = new URL(window.location.href);
     url.searchParams.delete('mode');
     window.history.pushState({}, '', url.toString());
+    exitFullscreen();
   };
 
   const renderDemoBanner = () => {

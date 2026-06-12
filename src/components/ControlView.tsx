@@ -630,14 +630,11 @@ export default function ControlView({
   const handlePlayWithAutoPiP = async () => {
     startTimer();
     if (autoPiPOnStart && !isPiPActive) {
-      // Small delay on user interaction ensures state is updated and video capture matches immediately
-      setTimeout(async () => {
-        try {
-          await startPiP();
-        } catch (err) {
-          console.warn('Auto play PiP request failed:', err);
-        }
-      }, 50);
+      try {
+        await startPiP();
+      } catch (err) {
+        console.warn('Auto play PiP request failed:', err);
+      }
     }
   };
 

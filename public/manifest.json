@@ -1,0 +1,9 @@
+{
+  "short_name": "Cronômetro",
+  "name": "Sincronizador de Tempo",
+  "start_url": "/?mode=portal",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#020617",
+  "background_color": "#020617"
+}

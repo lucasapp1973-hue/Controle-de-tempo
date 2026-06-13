@@ -4,7 +4,6 @@ import { motion } from 'motion/react';
 import { useSocket } from './hooks/useSocket';
 import DisplayView from './components/DisplayView';
 import ControlView from './components/ControlView';
-import SuperintendentView from './components/SuperintendentView';
 import HistoryView from './components/HistoryView';
 import PresidentCompactView from './components/PresidentCompactView';
 import HourglassAnimated from './components/HourglassAnimated';
@@ -35,8 +34,8 @@ export default function App() {
     clearAllMeetings,
   } = useSocket();
 
-  // App mode: portal (selection), display, control, superintendent (presidente), superintendent_compact, or history
-  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent' | 'superintendent_compact' | 'history'>('portal');
+  // App mode: portal (selection), display, control, superintendent (presidente), or history
+  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent' | 'history'>('portal');
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordError, setPasswordError] = useState('');
@@ -99,8 +98,8 @@ export default function App() {
     
     if (initialMode === 'display') {
       setAppMode('display');
-    } else if (initialMode === 'superintendent_compact' || initialMode === 'president-compact' || url.pathname.includes('president-compact')) {
-      setAppMode('superintendent_compact');
+    } else if (initialMode === 'superintendent_compact' || initialMode === 'superintendent' || initialMode === 'president-compact' || url.pathname.includes('president-compact') || url.pathname.includes('superintendent')) {
+      setAppMode('superintendent');
     } else {
       setAppMode('portal');
       if (url.searchParams.has('mode')) {
@@ -190,7 +189,7 @@ export default function App() {
   };
 
   // Update URL on state change to allow direct bookmarking
-  const selectMode = (mode: 'display' | 'control' | 'superintendent' | 'superintendent_compact' | 'history') => {
+  const selectMode = (mode: 'display' | 'control' | 'superintendent' | 'history') => {
     setAppMode(mode);
     const url = new URL(window.location.href);
     url.searchParams.set('mode', mode);
@@ -290,30 +289,8 @@ export default function App() {
     );
   }
 
-  // Render Superintendent View (Presidente)
+  // Render President View (Presidente)
   if (appMode === 'superintendent') {
-    return (
-      <motion.div
-        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {renderDemoBanner()}
-        <div className="flex-1 overflow-y-auto">
-          <SuperintendentView
-            timerState={timerState}
-            isConnected={isConnected}
-            onBack={handleBackToPortal}
-          />
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Render President Compact View (Presidente Compacto)
-  if (appMode === 'superintendent_compact') {
     return (
       <motion.div
         className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
@@ -488,51 +465,24 @@ export default function App() {
           >
             <div className="space-y-4">
               <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <ClipboardList className="w-5 h-5" />
+                <Minimize2 className="w-5 h-5" />
               </div>
               <div>
                 <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
                   3. Presidente
                 </h2>
                 <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Acompanhe a parte ativa em tempo real com cronômetro grande, ou visualize imediatamente os resultados consolidados assim que concluídas.
+                  Cronômetro companion discreto para o presidente. Janela compacta pinada para acompanhar do canto da tela se o manual Melhore está sendo aplicado.
                 </p>
               </div>
             </div>
             <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
-              <span>Abrir Painel</span>
+              <span>Abrir Presidente</span>
               <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
             </div>
           </motion.div>
 
-          {/* Card 4: Presidente Compacto */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.52, duration: 0.4 }}
-            onClick={() => selectMode('superintendent_compact')}
-            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
-          >
-            <div className="space-y-4">
-              <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Minimize2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
-                  4. Presidente Compacto
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Cronômetro companion discreto para o presidente. Janela compacta ou pinada para acompanhar do canto da tela se o manual Melhore está sendo aplicado.
-                </p>
-              </div>
-            </div>
-            <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
-              <span>Abrir Compacto</span>
-              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
-            </div>
-          </motion.div>
-
-          {/* Card 5: Historico */}
+          {/* Card 4: Historico */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -546,7 +496,7 @@ export default function App() {
               </div>
               <div>
                 <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
-                  5. Histórico
+                  4. Histórico
                 </h2>
                 <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
                   Consulte todas as reuniões já realizadas com os indicadores estatísticos detalhados de cada orador e tabelas com cores dinâmicas.

@@ -20,49 +20,9 @@ export default function PresidentCompactView({
 }: PresidentCompactViewProps) {
   const { isRunning, mode, currentTime, initialDuration, schedule = [], activeId, elapsedTime } = timerState;
 
-  // Local storage persisted preferences
-  const [isCompact, setIsCompact] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('president_compact_mode') === 'true';
-    } catch (_) {
-      return false;
-    }
-  });
-
-  const [isPinned, setIsPinned] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem('president_pinned_mode') === 'true';
-    } catch (_) {
-      return false;
-    }
-  });
-
-  const toggleCompact = () => {
-    const next = !isCompact;
-    setIsCompact(next);
-    try {
-      localStorage.setItem('president_compact_mode', String(next));
-    } catch (_) {}
-  };
-
-  const togglePinned = () => {
-    const next = !isPinned;
-    setIsPinned(next);
-    try {
-      localStorage.setItem('president_pinned_mode', String(next));
-    } catch (_) {}
-  };
-
-  const openInWindow = () => {
-    try {
-      // Open in a separate popup window
-      const url = `/?mode=president-compact`;
-      window.open(url, 'presidentCompact', 'width=520,height=630,resizable=yes,scrollbars=yes');
-    } catch (err) {
-      console.warn('Erro ao abrir em nova janela, abrindo aba normal:', err);
-      window.open(`/?mode=president-compact`, '_blank');
-    }
-  };
+  // Force compact and pinned/fixed view on entry, as requested by the user
+  const [isCompact, setIsCompact] = useState<boolean>(true);
+  const [isPinned] = useState<boolean>(true);
 
   // Find the currently active schedule participant
   const activeItem = schedule.find((item) => item.id === activeId);
@@ -97,6 +57,17 @@ export default function PresidentCompactView({
       diffSecs = currentTime - initialDuration;
     }
   }
+
+  // Automatic transition:
+  // - Show "Expanded" automatically when time runs out (isOvertime === true)
+  // - Return to "Compact" when the "Iniciar" button is clicked (isRunning === true & isOvertime === false)
+  useEffect(() => {
+    if (isOvertime) {
+      setIsCompact(false);
+    } else if (isRunning) {
+      setIsCompact(true);
+    }
+  }, [isOvertime, isRunning]);
 
   const formatDiffTime = (totalSeconds: number) => {
     const absSeconds = Math.abs(totalSeconds);
@@ -139,7 +110,7 @@ export default function PresidentCompactView({
               <DoorOpen className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-sm font-black uppercase tracking-wider text-white">Presidente Compacto</h1>
+              <h1 className="text-sm font-black uppercase tracking-wider text-white">Presidente</h1>
               <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest">Acompanhamento Discreto</p>
             </div>
           </div>
@@ -158,17 +129,13 @@ export default function PresidentCompactView({
         <div className="py-2 px-3 bg-slate-900/60 border border-slate-800/50 rounded-xl flex items-center justify-between mb-2">
           <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
             <AnalogueClock type="presidente" />
-            Presidente Compacto
+            Presidente
           </span>
           <div className="flex items-center gap-3">
-            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-            <button
-              onClick={togglePinned}
-              className="text-[9px] font-bold text-indigo-400 hover:text-white transition-colors flex items-center gap-0.5"
-              title="Mostrar menus adicionais"
-            >
-              <Maximize2 className="w-3 h-3" />
-            </button>
+            <div className="flex items-center gap-1 bg-slate-950/80 border border-white/5 py-0.5 px-2 rounded-full">
+              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sinc</span>
+            </div>
           </div>
         </div>
       )}
@@ -253,65 +220,12 @@ export default function PresidentCompactView({
           </motion.div>
         )}
 
-        {/* QUICK OPTION TOOGLES PANEL */}
-        <div className="w-full grid grid-cols-3 gap-2 pt-2">
-          {/* Toggle Compact Mode */}
-          <button
-            type="button"
-            onClick={toggleCompact}
-            className={`py-2 px-2.5 border rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] cursor-pointer ${
-              isCompact
-                ? 'bg-amber-500/10 border-amber-500/40 text-amber-400'
-                : 'bg-slate-900 hover:bg-slate-850 border-slate-850 text-slate-400 hover:text-white'
-            }`}
-            title="Mostra apenas os dígitos do cronômetro e a designação"
-          >
-            <span>📌</span>
-            <span>{isCompact ? 'Expandido' : 'Compactar'}</span>
-          </button>
-
-          {/* Toggle Pinned Mode */}
-          <button
-            type="button"
-            onClick={togglePinned}
-            className={`py-2 px-2.5 border rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] cursor-pointer ${
-              isPinned
-                ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 animate-pulse'
-                : 'bg-slate-900 hover:bg-slate-850 border-slate-850 text-slate-400 hover:text-white'
-            }`}
-            title="Esconde barras de navegação para maximizar o foco e encaixar em janelas pequenas"
-          >
-            <span>📍</span>
-            <span>{isPinned ? 'Desafixar' : 'Fixar'}</span>
-          </button>
-
-          {/* Open in external windows popup */}
-          <button
-            type="button"
-            onClick={openInWindow}
-            className="py-2 px-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-850 text-slate-400 hover:text-white rounded-xl text-[10px] font-bold flex items-center justify-center gap-1.5 transition-all active:scale-[0.97] cursor-pointer"
-            title="Abre este mini-timer em uma janela popup do navegador"
-          >
-            <ExternalLink className="w-3 h-3 text-slate-400" />
-            <span>Na Janela</span>
-          </button>
-        </div>
-
       </main>
 
-      {/* FOOTER METADATA */}
-      {!isPinned ? (
-        <footer className="p-4 border-t border-slate-900/50 text-center text-[10px] text-slate-500 select-none bg-slate-950/80">
-          <p>Sincronizador de Tempo • Espelho do Presidente v1.0</p>
-        </footer>
-      ) : (
-        <button
-          onClick={togglePinned}
-          className="w-full py-1.5 text-[9px] bg-slate-900/40 hover:bg-slate-900 text-slate-500 hover:text-slate-300 text-center cursor-pointer uppercase font-semibold border-t border-slate-900/20"
-        >
-          Sair da Visualização Fixada
-        </button>
-      )}
+      {/* FOOTER METADATA - Static lock-in screen footer */}
+      <footer className="p-3 border-t border-slate-900 text-center text-[10px] text-slate-600 bg-slate-950">
+        <p>Espelho do Presidente • Dispositivo Sincronizado</p>
+      </footer>
 
     </div>
   );

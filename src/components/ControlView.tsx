@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
+import TimerCard from './TimerCard';
 import { reunioesService } from '../services/reunioesService';
 import { participantesService } from '../services/participantesService';
 import { configuracoesService } from '../services/configuracoesService';
@@ -717,117 +718,16 @@ export default function ControlView({
         )}
 
         {/* NEW SIMPLIFIED STOPWATCH MAIN CARD WITH DYNAMIC DISPLAY STATES */}
-        <section id="sync-preview-card" className={`border rounded-2xl p-5 shadow-xl relative overflow-hidden transition-all duration-700 ${cardBgClass}`}>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-          
-          <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-            <span className="text-xs font-black tracking-wider uppercase flex items-center gap-1.5 opacity-90">
-              <Clock className="w-4 h-4 text-indigo-400" />
-              Cronômetro Atual ({cardStateLabel})
-            </span>
-            <div className="flex items-center gap-2 bg-slate-950/90 border border-white/10 py-1 px-2.5 rounded-full shadow-inner">
-              <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-450 animate-ping' : 'bg-amber-450'}`} />
-              <span className="text-[10px] font-black text-slate-350 uppercase tracking-widest">{isRunning ? 'RODANDO' : 'PAUSADO'}</span>
-            </div>
-          </div>
-          
-          <div className="bg-slate-950/80 rounded-2xl p-6 text-center border border-white/5 shadow-inner space-y-3">
-            {activeItem ? (
-              <div className="text-slate-200 text-sm font-bold tracking-wide">
-                Participante Ativo: <span className="text-indigo-400">{activeItem.name}</span> <span className="text-xs text-slate-400 font-medium">| {activeItem.partType}</span>
-              </div>
-            ) : (
-              <div className="text-slate-500 text-xs italic">
-                Nenhum participante ativo selecionado. Clique em alguém abaixo para carregar.
-              </div>
-            )}
-
-            {/* Giant Centralized Digits */}
-            <div style={{ color: activeColor }} className="text-6xl md:text-7xl font-mono font-black tracking-widest leading-none my-2 transition-colors duration-500">
-              {formatTime(currentTime)}
-            </div>
-
-            <div className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-              Modo {mode === 'regressive' ? 'Regressivo' : 'Progressivo'} • Meta: {formatTime(initialDuration)}
-              {activeItem && isRunning && (
-                <span className="block text-slate-300 mt-1">
-                  Tempo Realizado: <span className="font-mono text-emerald-400 font-bold">{formatTime(elapsedTime)}</span> (Dif: {formatDifference(initialDuration, elapsedTime)})
-                </span>
-              )}
-            </div>
-
-
-          </div>
-
-          {/* STREAMLINED OPERATION BUTTONS */}
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            {/* Play / Pause Toggle Button */}
-            {!isRunning ? (
-              <button
-                type="button"
-                onClick={startTimer}
-                disabled={!isConnected}
-                className="py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 cursor-pointer text-sm"
-              >
-                <Play className="w-4 h-4 fill-current" />
-                Iniciar
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={pauseTimer}
-                disabled={!isConnected}
-                className="py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-950/20 cursor-pointer text-sm"
-              >
-                <Pause className="w-4 h-4 fill-current" />
-                Pausar
-              </button>
-            )}
-
-            {/* Próxima Parte Button */}
-            <button
-              type="button"
-              onClick={handleNextPart}
-              disabled={!isConnected || !activeId}
-              className="py-3 px-4 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-950/20 cursor-pointer text-sm"
-              title="Registra tempo da parte atual e avança automaticamente para o próximo participante"
-            >
-              <SkipForward className="w-4 h-4" />
-              Próxima Parte
-            </button>
-          </div>
-
-          {/* SOLID DYNAMIC MODE SELECTOR (Instant Sinc) */}
-          <div className="mt-5 border-t border-slate-850 pt-4">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Configurar Modo Sincronizado</span>
-            <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-850">
-              <button
-                type="button"
-                onClick={() => handleModeChange('regressive')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  mode === 'regressive'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
-                }`}
-              >
-                <ArrowDown className="w-3.5 h-3.5" />
-                Regressivo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleModeChange('progressive')}
-                className={`py-2 px-3 rounded-lg text-xs font-bold tracking-tight transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                  mode === 'progressive'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
-                }`}
-              >
-                <ArrowUp className="w-3.5 h-3.5" />
-                Progressivo
-              </button>
-            </div>
-          </div>
-        </section>
+        <TimerCard
+          timerState={timerState}
+          systemConfig={systemConfig}
+          isReadOnly={false}
+          isConnected={isConnected}
+          startTimer={startTimer}
+          pauseTimer={pauseTimer}
+          handleNextPart={handleNextPart}
+          handleModeChange={handleModeChange}
+        />
 
         {/* LISTA DA PROGRAMAÇÃO WITH SELEÇÃO INTELIGENTE CHANNELS */}
         <section id="schedule-list-card" className="bg-slate-950/50 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">

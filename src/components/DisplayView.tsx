@@ -124,18 +124,10 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
 
       {/* Floating minimalist Actions - shown only on hover/movement and auto-fades */}
       <div
-        className={`absolute top-4 left-4 right-4 flex justify-between items-center transition-all duration-300 z-50 ${
+        className={`absolute top-4 left-4 right-4 flex justify-end items-center transition-all duration-300 z-50 ${
           showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 p-2 bg-black/30 hover:bg-black/50 active:scale-95 text-white/90 hover:text-white rounded-lg text-xs font-medium backdrop-blur-md transition-all cursor-pointer border border-white/10"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Sair
-        </button>
-
         <button
           onClick={toggleFullscreen}
           className="p-2 bg-black/30 hover:bg-black/50 active:scale-95 text-white/95 hover:text-white rounded-lg backdrop-blur-md transition-all cursor-pointer border border-white/10"

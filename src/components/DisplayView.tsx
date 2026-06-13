@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 import { TimerState } from '../types';
 
 interface DisplayViewProps {
@@ -11,34 +10,23 @@ interface DisplayViewProps {
 
 export default function DisplayView({ timerState, isConnected, onBack, systemConfig }: DisplayViewProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const displayContainerRef = useRef<HTMLDivElement>(null);
 
   const { currentTime, mode, initialDuration, isRunning } = timerState;
 
-  // Track cursor movement to show/hide back and fullscreen floating buttons
+  // Try to enter fullscreen automatically on mount/init (if allowed by browser user gesture cascade)
   useEffect(() => {
-    const handleMouseMove = () => {
-      setShowControls(true);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
-      }
-      controlsTimeoutRef.current = setTimeout(() => {
-        if (isRunning) {
-          setShowControls(false);
+    const tryFullscreen = async () => {
+      try {
+        if (!document.fullscreenElement) {
+          await displayContainerRef.current?.requestFullscreen();
         }
-      }, 3000);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      if (controlsTimeoutRef.current) {
-        clearTimeout(controlsTimeoutRef.current);
+      } catch (err) {
+        console.warn('Initial fullscreen try failed/blocked:', err);
       }
     };
-  }, [isRunning]);
+    tryFullscreen();
+  }, []);
 
   // Fullscreen handle
   const toggleFullscreen = async () => {
@@ -55,7 +43,7 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
     }
   };
 
-  // Sync fullscreen state in case of Esc key
+  // Sync fullscreen state in case of Esc key or external change
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -109,7 +97,9 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
       id="display-container"
       ref={displayContainerRef}
       style={{ backgroundColor: bgColorStyle }}
-      className="relative w-full h-screen flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none"
+      onClick={toggleFullscreen}
+      className="relative w-full h-screen flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none cursor-pointer"
+      title="Clique na tela para alternar Tela Cheia"
     >
       {/* Subtle overlay for physical display look */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/10 pointer-events-none" />
@@ -121,21 +111,6 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
           Conectando...
         </div>
       )}
-
-      {/* Floating minimalist Actions - shown only on hover/movement and auto-fades */}
-      <div
-        className={`absolute top-4 left-4 right-4 flex justify-end items-center transition-all duration-300 z-50 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <button
-          onClick={toggleFullscreen}
-          className="p-2 bg-black/30 hover:bg-black/50 active:scale-95 text-white/95 hover:text-white rounded-lg backdrop-blur-md transition-all cursor-pointer border border-white/10"
-          title={isFullscreen ? 'Sair de Tela Cheia' : 'Tela Cheia'}
-        >
-          {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-        </button>
-      </div>
 
       {/* Display is STRICTLY the elapsed time, huge, centered, no text layout */}
       <div className="flex items-center justify-center text-center w-full select-none z-10">

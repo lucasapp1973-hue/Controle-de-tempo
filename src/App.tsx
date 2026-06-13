@@ -194,7 +194,9 @@ export default function App() {
     const url = new URL(window.location.href);
     url.searchParams.set('mode', mode);
     window.history.pushState({}, '', url.toString());
-    enterFullscreen();
+    if (mode === 'display') {
+      enterFullscreen();
+    }
   };
 
   const handleBackToPortal = () => {

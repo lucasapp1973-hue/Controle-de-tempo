@@ -96,9 +96,12 @@ export default function App() {
 
   const handlePasswordSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (password === (systemConfig?.senhaControle || '2121')) {
+    if (password === (systemConfig?.senhaControle || '2222')) {
       localStorage.setItem('control_auth_timestamp', Date.now().toString());
       setShowPasswordPrompt(false);
+      // Clean up inputs and trigger exit transitions
+      setPassword('');
+      setPasswordError('');
       handlePortalCardClick('control', () => selectMode('control'));
     } else {
       setPasswordError('Senha incorreta! Apenas irmãos autorizados têm acesso.');
@@ -553,7 +556,15 @@ export default function App() {
                   animate={animateValue}
                   whileHover={!isAnySelected ? { scale: 1.02 } : undefined}
                   whileTap={!isAnySelected ? { scale: 0.98 } : undefined}
-                  onClick={() => handlePortalCardClick(card.id as any, card.action)}
+                  onClick={() => {
+                    if (card.id === 'control' && !isAuthorized()) {
+                      setShowPasswordPrompt(true);
+                      setPassword('');
+                      setPasswordError('');
+                    } else {
+                      handlePortalCardClick(card.id as any, card.action);
+                    }
+                  }}
                   className={`relative flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 rounded-2xl p-3.5 shadow-md cursor-pointer transition-colors duration-300 border-none select-none overflow-hidden group`}
                 >
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${card.iconBg} shrink-0`}>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
@@ -692,9 +692,12 @@ export default function ControlView({
         </section>
 
         {/* INPUT DE PRESIDENTE DA REUNIÃO */}
-        <section className="relative z-20 bg-slate-950/50 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Presidente de Hoje</span>
+        <section className={`relative bg-slate-950/50 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 transition-all duration-200 ${showPresidenteDropdown ? 'z-40' : 'z-20'}`}>
+          <div className="flex items-center justify-between border-b border-slate-850 pb-3">
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-emerald-400 shrink-0" />
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">Presidente de Hoje</h2>
+            </div>
             <div className="text-[10px] text-slate-500 font-mono hidden sm:block">
               Sessão ativa: <span className="text-slate-400">{currentMeetingId ? currentMeetingId.substring(0, 8) : 'Carregando...'}</span>
             </div>
@@ -721,7 +724,7 @@ export default function ControlView({
             <button
               type="button"
               onClick={() => setShowPresidenteDropdown(!showPresidenteDropdown)}
-              className="bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl p-3.5 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0"
+              className="bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0"
             >
               <ChevronDown className="w-4.5 h-4.5" />
             </button>

@@ -99,7 +99,6 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
       style={{ backgroundColor: bgColorStyle }}
       onClick={toggleFullscreen}
       className="relative w-full h-screen flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none cursor-pointer"
-      title="Clique na tela para alternar Tela Cheia"
     >
       {/* Subtle overlay for physical display look */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/10 pointer-events-none" />

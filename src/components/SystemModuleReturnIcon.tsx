@@ -102,7 +102,6 @@ export default function SystemModuleReturnIcon({ onClick }: SystemModuleReturnIc
     <button
       onClick={onClick}
       className="relative flex items-center justify-center w-11 h-11 bg-slate-900 hover:bg-indigo-950/20 border border-slate-800 hover:border-indigo-500/40 rounded-xl cursor-pointer transition-all duration-300 group shadow-md active:scale-90"
-      title="Voltar para Seleção de Módulos"
     >
       <motion.div
         animate={{

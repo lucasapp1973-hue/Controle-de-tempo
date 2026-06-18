@@ -476,7 +476,7 @@ export default function App() {
           {[
             {
               id: 'display',
-              label: '. Display',
+              label: 'Display',
               action: () => selectMode('display'),
               icon: Tv,
               color: 'from-emerald-500/30 to-teal-500/30',
@@ -494,7 +494,7 @@ export default function App() {
             },
             {
               id: 'superintendent',
-              label: '3. Presidente',
+              label: 'Presidente',
               action: () => selectMode('superintendent'),
               icon: User,
               color: 'from-blue-500/30 to-indigo-500/30',
@@ -503,7 +503,7 @@ export default function App() {
             },
             {
               id: 'history',
-              label: '4. Histórico',
+              label: 'Histórico',
               action: () => selectMode('history'),
               icon: Calendar,
               color: 'from-amber-500/30 to-orange-500/30',
@@ -624,7 +624,7 @@ export default function App() {
 
       {/* Footer copyright */}
       <footer className="py-6 border-t border-slate-900/50 bg-slate-950/80 text-center text-xs text-slate-500 z-10 select-none">
-        <p>Sincronizador de Tempo Real-time via Socket.IO • Latência Zero</p>
+        <p>Sincronizador de tempo de latência zero</p>
       </footer>
 
     </div>

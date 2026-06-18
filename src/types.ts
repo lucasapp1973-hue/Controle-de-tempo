@@ -7,6 +7,10 @@ export interface ScheduleItem {
   expectedTime: number; // in seconds
   status: 'pending' | 'active' | 'completed';
   completedTime?: number | null; // in seconds actually taken
+  avaliada?: boolean;
+  licaoNumero?: number | null;
+  observacaoPresidente?: string;
+  conselhoAplicado?: boolean | null;
 }
 
 export interface CompletedMeeting {

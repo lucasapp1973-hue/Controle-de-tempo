@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { DoorOpen, Wifi, WifiOff, LayoutGrid, Minimize2, Maximize2, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause } from 'lucide-react';
+import { DoorOpen, Wifi, WifiOff, LayoutGrid, Minimize2, Maximize2, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, BookOpen } from 'lucide-react';
 import { TimerState, ScheduleItem } from '../types';
 import { motion } from 'motion/react';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
+import { licoesService } from '../services/licoesService';
 
 interface PresidentCompactViewProps {
   timerState: TimerState;
@@ -23,6 +24,28 @@ export default function PresidentCompactView({
   // Force compact and pinned/fixed view on entry, as requested by the user
   const [isCompact, setIsCompact] = useState<boolean>(true);
   const [isPinned] = useState<boolean>(true);
+  const [localElapsedTime, setLocalElapsedTime] = useState(elapsedTime);
+
+  // Sync local client-side elapsed clock with official server-side state broadcasts
+  useEffect(() => {
+    setLocalElapsedTime(elapsedTime);
+  }, [elapsedTime]);
+
+  // Keep local elapsed time incrementing in real-time between official broadcasts (buttery smooth ticking)
+  useEffect(() => {
+    if (!isRunning || isStopped) return;
+
+    const interval = setInterval(() => {
+      setLocalElapsedTime((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isRunning, isStopped]);
+
+  // Initialize and load lessons cache once
+  useEffect(() => {
+    licoesService.fetchLicoes();
+  }, []);
 
   // Find the currently active schedule participant
   const activeItem = schedule.find((item) => item.id === activeId);
@@ -46,9 +69,9 @@ export default function PresidentCompactView({
   
   if (activeItem) {
     // Determine overtime based on elapsed time vs expected duration
-    isOvertime = elapsedTime >= activeItem.expectedTime;
+    isOvertime = localElapsedTime >= activeItem.expectedTime;
     // Difference continues tracking elapsed seconds vs the expected duration
-    diffSecs = elapsedTime - activeItem.expectedTime;
+    diffSecs = localElapsedTime - activeItem.expectedTime;
   }
 
   // Automatic transition:
@@ -79,7 +102,7 @@ export default function PresidentCompactView({
   if (activeItem) {
     if (isOvertime) {
       statusText = 'Tempo Excedido';
-      statusBgClass = 'bg-red-500/15 border-red-500/30 text-red-400 font-extrabold animate-pulse';
+      statusBgClass = 'bg-red-500/15 border-red-500/30 text-red-100 font-extrabold animate-pulse';
       statusIcon = <ShieldAlert className="w-4 h-4 text-red-400" />;
     } else {
       statusText = 'Dentro do Tempo';
@@ -179,7 +202,7 @@ export default function PresidentCompactView({
               <div className="bg-slate-950/80 border border-slate-900/60 p-4 rounded-2xl flex flex-col justify-center text-center">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Tempo Realizado</span>
                 <span className="text-2xl font-mono font-black text-amber-400 block">
-                  {activeItem ? formatTime(elapsedTime) : '00:00'}
+                  {activeItem ? formatTime(localElapsedTime) : '00:00'}
                 </span>
               </div>
             </div>
@@ -206,6 +229,68 @@ export default function PresidentCompactView({
             Acompanhamento projetado para o uso de tempo em conformidade com o manual <span className="font-semibold text-slate-400">Melhore</span>.
           </p>
         </motion.div>
+
+        {/* SPECIAL PANEL: ACTIVE MELHORE BROCHURE LESSON */}
+        {activeItem && activeItem.avaliada && activeItem.licaoNumero && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full bg-slate-900 border-2 border-indigo-500/40 rounded-3xl p-6 shadow-2xl space-y-5"
+          >
+            {/* Lesson Header */}
+            <div className="flex items-center gap-3 border-b border-indigo-950 pb-3">
+              <div className="bg-indigo-600 rounded-xl p-2 text-white">
+                <BookOpen className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 block">Brochura "Melhore"</span>
+                <h3 className="text-base font-black text-white leading-tight">
+                  Lição {activeItem.licaoNumero} — {licoesService.getLicaoByNumero(activeItem.licaoNumero)?.titulo || 'Conselho'}
+                </h3>
+              </div>
+            </div>
+
+            {/* Objective */}
+            <div className="bg-indigo-950/15 border border-indigo-900/30 p-4 rounded-2xl space-y-1">
+              <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider block">Objetivo da Lição</span>
+              <p className="text-xs font-medium text-indigo-100 leading-relaxed">
+                {licoesService.getLicaoByNumero(activeItem.licaoNumero)?.objetivo}
+              </p>
+            </div>
+
+            {/* Resumo/Key points (Highlighted) */}
+            <div className="space-y-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Resumo de Ações</span>
+              <div className="flex flex-wrap gap-1.5">
+                {licoesService.getLicaoByNumero(activeItem.licaoNumero)?.resumoCurto.map((resumo, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-indigo-600/15 border border-indigo-500/35 text-indigo-300 font-extrabold text-[11px] px-3 py-1 rounded-full shadow-sm"
+                  >
+                    ✦ {resumo}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Como Fazer steps */}
+            <div className="space-y-3 pt-1">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Conselhos / Como Fazer</span>
+              <div className="space-y-2.5">
+                {licoesService.getLicaoByNumero(activeItem.licaoNumero)?.comoFazer.map((item, idx) => (
+                  <div key={idx} className="bg-slate-950/40 border border-slate-850 p-3.5 rounded-2xl space-y-1">
+                    <h4 className="text-xs font-black text-indigo-400 uppercase tracking-wide">
+                      {idx + 1}. {item.titulo}
+                    </h4>
+                    <p className="text-[11.5px] font-normal text-slate-300 leading-relaxed">
+                      {item.descricao}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
 
       </main>
 

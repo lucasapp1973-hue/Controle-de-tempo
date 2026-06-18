@@ -28,6 +28,10 @@ interface ScheduleItem {
   expectedTime: number; // in seconds
   status: 'pending' | 'active' | 'completed';
   completedTime?: number | null; // in seconds actually taken
+  avaliada?: boolean;
+  licaoNumero?: number | null;
+  observacaoPresidente?: string;
+  conselhoAplicado?: boolean | null;
 }
 
 interface CompletedMeeting {
@@ -210,7 +214,7 @@ io.on('connection', (socket) => {
   });
 
   // Schedule management: Add
-  socket.on('schedule:add', (item: { name: string; partType: string; expectedTime: number }) => {
+  socket.on('schedule:add', (item: { name: string; partType: string; expectedTime: number; avaliada?: boolean; licaoNumero?: number | null }) => {
     const newItem: ScheduleItem = {
       id: 'part_' + Math.random().toString(36).substring(2, 9),
       name: item.name,
@@ -218,6 +222,10 @@ io.on('connection', (socket) => {
       expectedTime: item.expectedTime,
       status: 'pending',
       completedTime: null,
+      avaliada: item.avaliada ?? false,
+      licaoNumero: item.licaoNumero ?? null,
+      observacaoPresidente: "",
+      conselhoAplicado: null
     };
     
     session.state.schedule.push(newItem);
@@ -398,6 +406,8 @@ io.on('connection', (socket) => {
           item.status = 'completed';
           item.completedTime = item.expectedTime; // defaults to expected if not started
         }
+        item.observacaoPresidente = item.observacaoPresidente ?? "";
+        item.conselhoAplicado = item.conselhoAplicado ?? null;
       });
 
       if (!session.state.meetings) {

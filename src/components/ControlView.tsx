@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User, BookOpen } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
@@ -7,6 +7,8 @@ import { reunioesService } from '../services/reunioesService';
 import { participantesService } from '../services/participantesService';
 import { configuracoesService } from '../services/configuracoesService';
 import { sessionStore } from '../services/sessionStore';
+import { licoesService } from '../services/licoesService';
+import { LicaoMelhore } from '../data/licoes';
 
 const NOMES_OPTIONS = [
   "1. Abel Domiciano",
@@ -69,7 +71,7 @@ interface ControlViewProps {
   resumeTimer: () => void;
   resetTimer: () => void;
   setTimer: (minutes: number, seconds: number, mode: TimerMode) => void;
-  addScheduleItem: (name: string, partType: string, expectedTime: number) => void;
+  addScheduleItem: (name: string, partType: string, expectedTime: number, avaliada?: boolean, licaoNumero?: number | null) => void;
   editScheduleItem: (item: ScheduleItem) => void;
   removeScheduleItem: (id: string) => void;
   reorderSchedule: (newList: ScheduleItem[]) => void;
@@ -264,12 +266,19 @@ export default function ControlView({
   const [addName, setAddName] = useState('');
   const [addPartType, setAddPartType] = useState('');
   const [addMinutes, setAddMinutes] = useState(4);
+  const [isAvaliada, setIsAvaliada] = useState(false);
+  const [selectedLicao, setSelectedLicao] = useState<number>(1);
 
   // Inline Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPartType, setEditPartType] = useState('');
   const [editMinutes, setEditMinutes] = useState(4);
+  const [editIsAvaliada, setEditIsAvaliada] = useState(false);
+  const [editSelectedLicao, setEditSelectedLicao] = useState<number>(1);
+
+  // Lessons list cache
+  const [licoesList, setLicoesList] = useState<LicaoMelhore[]>([]);
 
   // Dropdown Open/Close states
   const [showNameDropdown, setShowNameDropdown] = useState(false);
@@ -279,6 +288,15 @@ export default function ControlView({
   const [showEditNameDropdown, setShowEditNameDropdown] = useState(false);
   const [showEditPartTypeDropdown, setShowEditPartTypeDropdown] = useState(false);
   const [showEditMinutesDropdown, setShowEditMinutesDropdown] = useState(false);
+
+  // Fetch lessons once upon mounting (Performance)
+  useEffect(() => {
+    const loadLicoesData = async () => {
+      const data = await licoesService.fetchLicoes();
+      setLicoesList(data);
+    };
+    loadLicoesData();
+  }, []);
 
   // Operator Vibration Trigger on threshold remaining and completion/overrun
   useEffect(() => {
@@ -464,10 +482,18 @@ export default function ControlView({
   const handleAddParticipant = (e: FormEvent) => {
     e.preventDefault();
     if (!addName.trim() || !addPartType.trim()) return;
-    addScheduleItem(addName, addPartType, addMinutes * 60);
+    addScheduleItem(
+      addName,
+      addPartType,
+      addMinutes * 60,
+      isAvaliada,
+      isAvaliada ? selectedLicao : null
+    );
     setAddName('');
     setAddPartType('');
     setAddMinutes(4);
+    setIsAvaliada(false);
+    setSelectedLicao(1);
   };
 
   // Handler to initiate edit Mode
@@ -476,6 +502,8 @@ export default function ControlView({
     setEditName(item.name);
     setEditPartType(item.partType);
     setEditMinutes(Math.floor(item.expectedTime / 60));
+    setEditIsAvaliada(item.avaliada ?? false);
+    setEditSelectedLicao(item.licaoNumero ?? 1);
   };
 
   // Save changes from inline edit
@@ -485,6 +513,8 @@ export default function ControlView({
       name: editName,
       partType: editPartType,
       expectedTime: editMinutes * 60,
+      avaliada: editIsAvaliada,
+      licaoNumero: editIsAvaliada ? editSelectedLicao : null,
     });
     setEditingId(null);
   };
@@ -917,6 +947,34 @@ export default function ControlView({
                             />
                           </div>
                         </div>
+                        <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 my-2 space-y-2">
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={editIsAvaliada}
+                              onChange={(e) => setEditIsAvaliada(e.target.checked)}
+                              className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 accent-indigo-500"
+                            />
+                            <span className="text-xs text-slate-300 font-semibold">Editar: Parte avaliada pela Brochura</span>
+                          </label>
+                          {editIsAvaliada && (
+                            <div className="space-y-1">
+                              <label className="text-[10px] uppercase font-bold text-slate-500 block">Escolher Lição</label>
+                              <select
+                                value={editSelectedLicao}
+                                onChange={(e) => setEditSelectedLicao(Number(e.target.value))}
+                                className="w-full bg-slate-955 border border-slate-800 rounded-lg py-1 px-2 text-xs text-white"
+                              >
+                                {licoesList.map((licao) => (
+                                  <option key={licao.numero} value={licao.numero}>
+                                    Lição {licao.numero} — {licao.titulo}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+
                         <div className="flex items-center justify-between gap-2 border-t border-slate-850/40 pt-2">
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs text-slate-400 font-medium">Previsto (min):</span>
@@ -968,11 +1026,20 @@ export default function ControlView({
                           </div>
 
                           {/* Simplified dynamic label format to match exact requirement */}
-                          <div className="text-sm font-bold text-white leading-relaxed">
-                            {statusSymbol && <span className="mr-1">{statusSymbol}</span>}
-                            <span>{item.name}</span>
-                            <span className="text-slate-300 font-semibold"> - {Math.floor(item.expectedTime / 60)} min</span>
-                            <span className="text-slate-500 font-normal text-xs ml-1.5">| {item.partType}</span>
+                          <div className="text-sm font-bold text-white leading-relaxed flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {statusSymbol && <span className="mr-1">{statusSymbol}</span>}
+                              <span>{item.name}</span>
+                              <span className="text-slate-300 font-semibold"> - {Math.floor(item.expectedTime / 60)} min</span>
+                              <span className="text-slate-500 font-normal text-xs">| {item.partType}</span>
+                            </div>
+
+                            {item.avaliada && item.licaoNumero && (
+                              <div className="flex items-center gap-1 text-xs text-indigo-400 bg-indigo-950/40 px-2 py-0.5 border border-indigo-900/30 rounded w-fit select-none font-semibold">
+                                <BookOpen className="w-3 h-3" />
+                                <span>Lição {item.licaoNumero} — {licoesService.getLicaoByNumero(item.licaoNumero)?.titulo || 'Melhore'}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -1167,6 +1234,38 @@ export default function ControlView({
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Melhore Lesson Selection */}
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={isAvaliada}
+                  onChange={(e) => setIsAvaliada(e.target.checked)}
+                  className="w-4.5 h-4.5 rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-600/50 focus:ring-2 focus:ring-offset-slate-900 focus:outline-none transition-all cursor-pointer accent-indigo-650"
+                />
+                <span className="text-sm font-semibold text-slate-200">Parte avaliada pela Brochura "Melhore"</span>
+              </label>
+
+              {isAvaliada && (
+                <div className="space-y-1.5 animate-fadeIn">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block">
+                    Lição em Avaliação
+                  </label>
+                  <select
+                    value={selectedLicao}
+                    onChange={(e) => setSelectedLicao(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-3 font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-650/50 focus:border-indigo-600 font-sans text-sm cursor-pointer"
+                  >
+                    {licoesList.map((licao) => (
+                      <option key={licao.numero} value={licao.numero} className="bg-slate-950 text-slate-200 font-sans">
+                        Lição {licao.numero} — {licao.titulo}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">

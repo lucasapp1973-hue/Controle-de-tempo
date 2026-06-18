@@ -97,9 +97,53 @@
         "registradoEm": {
           "type": "string",
           "description": "Fração de tempo ou timestamp que indica o registro"
+        },
+        "avaliada": {
+          "type": "boolean",
+          "description": "Flag indicando se é uma parte avaliada"
+        },
+        "licaoNumero": {
+          "type": "number",
+          "description": "Número da lição avaliada para esta parte"
+        },
+        "observacaoPresidente": {
+          "type": "string",
+          "description": "Observação de avaliação do presidente"
+        },
+        "conselhoAplicado": {
+          "type": "boolean",
+          "description": "Resultado se conselho foi aplicado ou precisa de atenção"
         }
       },
       "required": ["participante", "tipoParte", "tempoPrevisto", "tempoRealizado", "diferenca", "concluida"]
+    },
+    "LicaoMelhore": {
+      "title": "LicaoMelhore",
+      "description": "Coleção de lições da brochura Melhore",
+      "type": "object",
+      "properties": {
+        "numero": {
+          "type": "number",
+          "description": "Número da lição"
+        },
+        "titulo": {
+          "type": "string",
+          "description": "Título da lição"
+        },
+        "objetivo": {
+          "type": "string",
+          "description": "Objetivo principal da lição"
+        },
+        "resumoCurto": {
+          "type": "array",
+          "description": "Lista curta de pontos chaves de resumo"
+        },
+        "comoFazer": {
+          "type": "array",
+          "description": "Passos detalhados de como exercitar a lição"
+        }
+      },
+      "required": ["numero", "titulo", "objetivo", "resumoCurto", "comoFazer"]
     },
     "Participante": {
       "title": "Participante",
@@ -150,6 +194,12 @@
         "$ref": "#/entities/Participante"
       },
       "description": "Coleção contendo todos os participantes cadastrados no controle de tempo"
+    },
+    "licoes_melhore": {
+      "schema": {
+        "$ref": "#/entities/LicaoMelhore"
+      },
+      "description": "Coleção contendo as lições cadastráveis da brochura Melhore"
     }
   }
 }

@@ -49,6 +49,14 @@ const PART_TYPES_OPTIONS = [
   "12. Estudo bíblico de congregação"
 ];
 
+const PRESIDENTE_OPTIONS = [
+  "Leônidas Alves",
+  "Rafael Barbosa",
+  "Marcus Vinícius",
+  "Moisés Calegário",
+  "Alef Gall"
+];
+
 interface ControlViewProps {
   timerState: TimerState;
   isConnected: boolean;
@@ -104,6 +112,11 @@ export default function ControlView({
 
   // Local state for Collapsible Configuration Box
   const [showParamsCollapse, setShowParamsCollapse] = useState(false);
+  const [isParamsUnlocked, setIsParamsUnlocked] = useState(false);
+  const [paramsPassword, setParamsPassword] = useState('');
+  const [paramsPasswordError, setParamsPasswordError] = useState('');
+  const [showPresidenteDropdown, setShowPresidenteDropdown] = useState(false);
+
   const [paramAlertaSegundos, setParamAlertaSegundos] = useState(20);
   const [paramSenhaControle, setParamSenhaControle] = useState('2121');
   const [paramCorTempoNormal, setParamCorTempoNormal] = useState('#10b981');
@@ -532,12 +545,12 @@ export default function ControlView({
       {/* Main Control Panel Workspace */}
       <main className="flex-1 w-full max-w-2xl mx-auto p-4 space-y-6 overflow-y-auto pb-12 mt-2">
         
-        {/* PARÂMETROS DO SISTEMA (FIRESTORE SYNC) */}
-        <section className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
+        {/* PARÂMETROS DO SISTEMA (FIRESTORE SYNC - SOFTER CONTOUR & PROTECTION) */}
+        <section className="bg-slate-900/40 border border-slate-900/40 rounded-[24px] overflow-hidden shadow-2xl transition-all duration-300">
           <button
             type="button"
             onClick={() => setShowParamsCollapse(!showParamsCollapse)}
-            className="w-full flex items-center justify-between p-4 font-bold text-slate-350 text-xs uppercase tracking-wider hover:bg-slate-900/80 transition-colors cursor-pointer"
+            className="w-full flex items-center justify-between p-4 font-bold text-slate-355 text-xs uppercase tracking-wider hover:bg-slate-900/40 transition-colors cursor-pointer"
           >
             <span className="flex items-center gap-2">
               <Settings className="w-4 h-4 text-indigo-400" />
@@ -547,92 +560,152 @@ export default function ControlView({
           </button>
           
           {showParamsCollapse && (
-            <form onSubmit={handleSaveParams} className="p-4 border-t border-slate-850 bg-slate-950/40 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Senha de Acesso (Controle)</label>
+            !isParamsUnlocked ? (
+              <div className="p-6 border-t border-slate-900/40 bg-slate-950/40 flex flex-col items-center justify-center space-y-4">
+                <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-505"></span>
+                  </span>
+                  Acesso Restrito
+                </div>
+                <p className="text-[11px] text-slate-400 text-center max-w-xs leading-relaxed">
+                  Insira a senha de desenvolvedor para visualizar e configurar os parâmetros do Firebase:
+                </p>
+                <div className="flex items-center gap-2 w-full max-w-xs">
                   <input
-                    type="text"
-                    value={paramSenhaControle}
-                    onChange={(e) => setParamSenhaControle(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-850 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono text-white text-center"
+                    type="password"
+                    placeholder="Senha de acesso..."
+                    value={paramsPassword}
+                    onChange={(e) => {
+                      setParamsPassword(e.target.value);
+                      setParamsPasswordError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        if (paramsPassword === '2222') {
+                          setIsParamsUnlocked(true);
+                          setParamsPasswordError('');
+                        } else {
+                          setParamsPasswordError('Senha incorreta!');
+                        }
+                      }
+                    }}
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2 px-3 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white font-mono text-center"
                   />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (paramsPassword === '2222') {
+                        setIsParamsUnlocked(true);
+                        setParamsPasswordError('');
+                      } else {
+                        setParamsPasswordError('Senha incorreta!');
+                      }
+                    }}
+                    className="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-white font-bold text-xs cursor-pointer select-none transition-all font-sans"
+                  >
+                    Confirmar
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Limite de Alerta (Segundos)</label>
-                  <input
-                    type="number"
-                    value={paramAlertaSegundos}
-                    onChange={(e) => setParamAlertaSegundos(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-850 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white font-mono text-center"
-                  />
-                </div>
+                {paramsPasswordError && (
+                  <span className="text-[10px] font-bold text-red-400 animate-pulse">{paramsPasswordError}</span>
+                )}
               </div>
+            ) : (
+              <form onSubmit={handleSaveParams} className="p-4 border-t border-slate-900/40 bg-slate-950/40 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Senha de Acesso (Controle)</label>
+                    <input
+                      type="text"
+                      value={paramSenhaControle}
+                      onChange={(e) => setParamSenhaControle(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-855 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono text-white text-center"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Limite de Alerta (Segundos)</label>
+                    <input
+                      type="number"
+                      value={paramAlertaSegundos}
+                      onChange={(e) => setParamAlertaSegundos(Number(e.target.value))}
+                      className="w-full bg-slate-950 border border-slate-855 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white font-mono text-center"
+                    />
+                  </div>
+                </div>
 
-              <div className="space-y-2 pt-2 border-t border-slate-850/60">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Paleta de Cores do Display</span>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center space-y-1">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Normal</span>
-                    <div className="flex items-center gap-1.5 justify-center">
-                      <input
-                        type="color"
-                        value={paramCorTempoNormal}
-                        onChange={(e) => setParamCorTempoNormal(e.target.value)}
-                        className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
-                      />
-                      <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoNormal}</span>
+                <div className="space-y-2 pt-2 border-t border-slate-855/60">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Paleta de Cores do Display</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="text-center space-y-1">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Normal</span>
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <input
+                          type="color"
+                          value={paramCorTempoNormal}
+                          onChange={(e) => setParamCorTempoNormal(e.target.value)}
+                          className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoNormal}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-center space-y-1">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Alerta</span>
-                    <div className="flex items-center gap-1.5 justify-center">
-                      <input
-                        type="color"
-                        value={paramCorTempoAlerta}
-                        onChange={(e) => setParamCorTempoAlerta(e.target.value)}
-                        className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
-                      />
-                      <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoAlerta}</span>
+                    <div className="text-center space-y-1">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Alerta</span>
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <input
+                          type="color"
+                          value={paramCorTempoAlerta}
+                          onChange={(e) => setParamCorTempoAlerta(e.target.value)}
+                          className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoAlerta}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-center space-y-1">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase block">Esgotado</span>
-                    <div className="flex items-center gap-1.5 justify-center">
-                      <input
-                        type="color"
-                        value={paramCorTempoEsgotado}
-                        onChange={(e) => setParamCorTempoEsgotado(e.target.value)}
-                        className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
-                      />
-                      <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoEsgotado}</span>
+                    <div className="text-center space-y-1">
+                      <span className="text-[9px] font-bold text-slate-500 uppercase block">Esgotado</span>
+                      <div className="flex items-center gap-1.5 justify-center">
+                        <input
+                          type="color"
+                          value={paramCorTempoEsgotado}
+                          onChange={(e) => setParamCorTempoEsgotado(e.target.value)}
+                          className="w-6 h-6 border-0 p-0 rounded-md cursor-pointer overflow-hidden bg-transparent"
+                        />
+                        <span className="text-[10px] text-slate-400 font-mono">{paramCorTempoEsgotado}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-end pt-2 border-t border-slate-850/60">
-                <button
-                  type="submit"
-                  className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center gap-1"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  Salvar Alterações
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end pt-2 border-t border-slate-855/60">
+                  <button
+                    type="submit"
+                    className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10px] uppercase tracking-wider rounded-lg transition-all cursor-pointer flex items-center gap-1"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    Salvar Alterações
+                  </button>
+                </div>
+              </form>
+            )
           )}
         </section>
 
         {/* INPUT DE PRESIDENTE DA REUNIÃO */}
-        <section className="bg-slate-900/40 border border-slate-850 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
+        <section className="bg-slate-900/40 border border-slate-850 rounded-[24px] p-5 space-y-4">
+          <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Presidente de Hoje</span>
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-emerald-400" />
+            <div className="text-[10px] text-slate-500 font-mono hidden sm:block">
+              Sessão ativa: <span className="text-slate-400">{currentMeetingId ? currentMeetingId.substring(0, 8) : 'Carregando...'}</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 relative">
+            <div className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 flex items-center gap-2.5 focus-within:ring-2 focus-within:ring-indigo-600/50 focus-within:border-indigo-600 transition-all">
+              <ClipboardList className="w-4 h-4 text-emerald-400 shrink-0" />
               <input
                 type="text"
-                placeholder="Nome do Presidente..."
+                placeholder="Ex: Leônidas Alves"
                 value={presidente}
                 onChange={async (e) => {
                   setPresidente(e.target.value);
@@ -640,12 +713,48 @@ export default function ControlView({
                     await reunioesService.updateReuniao(currentMeetingId, { presidente: e.target.value });
                   }
                 }}
+                onFocus={() => setShowPresidenteDropdown(true)}
                 className="bg-transparent border-0 font-extrabold text-sm text-white focus:outline-none focus:ring-0 p-0 w-full"
               />
             </div>
-          </div>
-          <div className="text-[10px] text-slate-500 md:text-right hidden sm:block">
-            <span>Sessão ativa: <span className="font-mono text-slate-400">{currentMeetingId ? currentMeetingId.substring(0, 8) : 'Carregando...'}</span></span>
+            
+            <button
+              type="button"
+              onClick={() => setShowPresidenteDropdown(!showPresidenteDropdown)}
+              className="bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl p-3.5 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0"
+            >
+              <ChevronDown className="w-4.5 h-4.5" />
+            </button>
+
+            {showPresidenteDropdown && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowPresidenteDropdown(false)} 
+                />
+                <div className="absolute left-0 right-0 top-[52px] mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
+                  {PRESIDENTE_OPTIONS.filter(opt => {
+                    if (!presidente.trim()) return true;
+                    return opt.toLowerCase().includes(presidente.toLowerCase());
+                  }).map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={async () => {
+                        setPresidente(opt);
+                        setShowPresidenteDropdown(false);
+                        if (currentMeetingId) {
+                          await reunioesService.updateReuniao(currentMeetingId, { presidente: opt });
+                        }
+                      }}
+                      className="w-full text-left py-2.5 px-4 hover:bg-indigo-600/10 hover:text-indigo-400 text-sm font-semibold text-slate-300 transition-colors"
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -945,7 +1054,7 @@ export default function ControlView({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nome do Participante</label>
-                <div className="relative">
+                <div className="flex items-center gap-2 relative">
                   <input
                     type="text"
                     required
@@ -956,14 +1065,14 @@ export default function ControlView({
                       setShowNameDropdown(true);
                     }}
                     onFocus={() => setShowNameDropdown(true)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-4 pr-10 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowNameDropdown(!showNameDropdown)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                    className="bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0"
                   >
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-4.5 h-4.5" />
                   </button>
 
                   {showNameDropdown && (
@@ -972,7 +1081,7 @@ export default function ControlView({
                         className="fixed inset-0 z-40" 
                         onClick={() => setShowNameDropdown(false)} 
                       />
-                      <div className="absolute left-0 right-0 mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
+                      <div className="absolute left-0 right-0 top-[52px] mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
                         {NOMES_OPTIONS.filter(opt => {
                           if (opt === 'divider') return true;
                           if (!addName.trim()) return true;
@@ -1008,7 +1117,7 @@ export default function ControlView({
 
               <div className="space-y-1.5 relative">
                 <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Tipo da Parte</label>
-                <div className="relative">
+                <div className="flex items-center gap-2 relative">
                   <input
                     type="text"
                     required
@@ -1019,14 +1128,14 @@ export default function ControlView({
                       setShowPartTypeDropdown(true);
                     }}
                     onFocus={() => setShowPartTypeDropdown(true)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-4 pr-10 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans"
+                    className="flex-1 bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 font-medium text-white focus:outline-none focus:ring-2 focus:ring-indigo-600/50 focus:border-indigo-600 font-sans text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPartTypeDropdown(!showPartTypeDropdown)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer p-1"
+                    className="bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl p-3 text-slate-400 hover:text-white transition-all cursor-pointer flex items-center justify-center shrink-0"
                   >
-                    <ChevronDown className="w-4 h-4" />
+                    <ChevronDown className="w-4.5 h-4.5" />
                   </button>
 
                   {showPartTypeDropdown && (
@@ -1035,7 +1144,7 @@ export default function ControlView({
                         className="fixed inset-0 z-40" 
                         onClick={() => setShowPartTypeDropdown(false)} 
                       />
-                      <div className="absolute left-0 right-0 mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
+                      <div className="absolute left-0 right-0 top-[52px] mt-1.5 bg-slate-950 border border-slate-800 rounded-xl max-h-52 overflow-y-auto shadow-2xl z-50 py-1 font-sans">
                         {getFilteredOptions(addPartType, PART_TYPES_OPTIONS).map((opt) => (
                           <button
                             key={opt}

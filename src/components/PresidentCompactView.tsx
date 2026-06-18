@@ -45,17 +45,10 @@ export default function PresidentCompactView({
   let isOvertime = false;
   
   if (activeItem) {
-    if (mode === 'regressive') {
-      // In regressive mode, currentTime <= 0 indicates overtime
-      isOvertime = currentTime <= 0;
-      // If overtime, diff is positive (how much they exceeded)
-      // If within time, diff is negative (how much is remaining)
-      diffSecs = isOvertime ? Math.abs(currentTime) : -currentTime;
-    } else {
-      // In progressive mode, currentTime >= initialDuration is overtime
-      isOvertime = currentTime >= initialDuration;
-      diffSecs = currentTime - initialDuration;
-    }
+    // Determine overtime based on elapsed time vs expected duration
+    isOvertime = elapsedTime >= activeItem.expectedTime;
+    // Difference continues tracking elapsed seconds vs the expected duration
+    diffSecs = elapsedTime - activeItem.expectedTime;
   }
 
   // Automatic transition:

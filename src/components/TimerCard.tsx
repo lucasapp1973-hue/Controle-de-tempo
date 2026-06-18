@@ -97,11 +97,23 @@ export default function TimerCard({
       <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
         <span className="text-xs font-black tracking-wider uppercase flex items-center gap-1.5 opacity-90">
           <Clock className="w-4 h-4 text-indigo-400" />
-          Cronômetro Atual ({cardStateLabel})
+          Cronômetro
         </span>
-        <div className="flex items-center gap-2 bg-slate-950/90 border border-white/10 py-1 px-2.5 rounded-full shadow-inner">
-          <span className={`w-2 h-2 rounded-full ${isRunning ? 'bg-emerald-450 animate-ping' : 'bg-amber-450'}`} />
-          <span className="text-[10px] font-black text-slate-350 uppercase tracking-widest">{isRunning ? 'RODANDO' : 'PAUSADO'}</span>
+        <div className="flex items-center gap-1.5 bg-slate-950/80 border border-white/10 py-1 px-2.5 rounded-full shadow-inner">
+          {isRunning ? (
+            <div className="flex items-center gap-1.5 text-emerald-400">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <Play className="w-2.5 h-2.5 fill-emerald-400 text-emerald-400" />
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-amber-500">
+              <span className="inline-flex rounded-full h-2 w-2 bg-amber-500" />
+              <Pause className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+            </div>
+          )}
         </div>
       </div>
       

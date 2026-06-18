@@ -156,6 +156,65 @@ export default function App() {
     };
   }, []);
 
+  // Synchronize browser / system native back button (and back swipes) with App State
+  useEffect(() => {
+    const handlePopState = () => {
+      const currentUrl = new URL(window.location.href);
+      const m = currentUrl.searchParams.get('mode');
+      if (m === 'display') {
+        setAppMode('display');
+      } else if (m === 'superintendent' || m === 'superintendent_compact' || m === 'president-compact') {
+        setAppMode('superintendent');
+      } else if (m === 'control') {
+        setAppMode('control');
+      } else if (m === 'history') {
+        setAppMode('history');
+      } else {
+        setAppMode('portal');
+        exitFullscreen();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  // Gesture Swipe Horizontal to return to portal (back interaction)
+  useEffect(() => {
+    if (appMode === 'portal') return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    const handleTouchStartGlobal = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const handleTouchEndGlobal = (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      // Horizontal swipe from left to right (diffX > 100px) with clean horizontal limit
+      if (diffX > 100 && Math.abs(diffY) < 50) {
+        handleBackToPortal();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStartGlobal, { passive: true });
+    document.addEventListener('touchend', handleTouchEndGlobal, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStartGlobal);
+      document.removeEventListener('touchend', handleTouchEndGlobal);
+    };
+  }, [appMode]);
+
   const enterFullscreen = () => {
     try {
       const docEl = document.documentElement;

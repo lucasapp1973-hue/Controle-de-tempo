@@ -104,14 +104,6 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
       {/* Subtle overlay for physical display look */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/10 pointer-events-none" />
 
-      {/* Connection status warning - kept minimal/subtle, only shows if offline */}
-      {!isConnected && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-red-800/90 text-white px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-2 shadow-lg backdrop-blur-sm">
-          <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-          Conectando...
-        </div>
-      )}
-
       {/* Display is STRICTLY the elapsed time, huge, centered, no text layout */}
       <div className="flex items-center justify-center text-center w-full select-none z-10">
         <div 

@@ -100,43 +100,22 @@ export default function PresidentCompactView({
       
       {/* HEADER BAR (Optional back button and utility bar) */}
       {!isPinned ? (
-        <header className="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shadow-md">
+        <header className="p-4 bg-transparent border-none flex items-center justify-between shadow-none">
           <div className="flex items-center gap-2">
-            <button
-              onClick={onBack}
-              className="p-2 hover:bg-slate-800 rounded-xl transition-all text-slate-400 hover:text-white cursor-pointer active:scale-95"
-              title="Voltar ao Portal"
-            >
-              <DoorOpen className="w-5 h-5" />
-            </button>
             <div>
               <h1 className="text-sm font-black uppercase tracking-wider text-white">Presidente</h1>
               <p className="text-[10px] text-indigo-400 font-semibold uppercase tracking-widest">Acompanhamento Discreto</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-slate-950 py-1 px-3 rounded-full border border-slate-800">
-              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-ping' : 'bg-red-500'}`} />
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                {isConnected ? 'Sincronizado' : 'Conectando'}
-              </span>
-            </div>
-          </div>
         </header>
       ) : (
         /* TINY HEADER UNDER PINNED MODE */
-        <div className="py-2 px-3 bg-slate-900/60 border border-slate-800/50 rounded-xl flex items-center justify-between mb-2">
+        <div className="py-2 px-3 bg-transparent border-none flex items-center justify-between mb-2">
           <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1">
             <AnalogueClock type="presidente" />
             Presidente
           </span>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-slate-950/80 border border-white/5 py-0.5 px-2 rounded-full">
-              <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Sinc</span>
-            </div>
-          </div>
+          <div />
         </div>
       )}
 

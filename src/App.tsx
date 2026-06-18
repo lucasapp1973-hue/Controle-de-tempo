@@ -6,7 +6,6 @@ import DisplayView from './components/DisplayView';
 import ControlView from './components/ControlView';
 import HistoryView from './components/HistoryView';
 import PresidentCompactView from './components/PresidentCompactView';
-import HourglassAnimated from './components/HourglassAnimated';
 import { configuracoesService, SystemConfig, DEFAULT_CONFIG } from './services/configuracoesService';
 import { sessionStore } from './services/sessionStore';
 import { demoService } from './services/demoService';
@@ -354,15 +353,6 @@ export default function App() {
         
         {/* Header Branding */}
         <header className="text-center space-y-5 flex flex-col items-center">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: -20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.05 }}
-            className="mb-1"
-          >
-            <HourglassAnimated />
-          </motion.div>
-
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

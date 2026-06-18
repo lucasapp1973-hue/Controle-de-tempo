@@ -500,7 +500,7 @@ export default function ControlView({
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
       {/* Dynamic Sync Top Bar */}
-      <header className="bg-transparent p-4 sticky top-0 z-30">
+      <header className="bg-transparent border-none p-4 sticky top-0 z-30">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="w-11" />
 
@@ -509,34 +509,7 @@ export default function ControlView({
             <span className="text-xs font-black tracking-widest text-slate-300 uppercase">Controle</span>
           </div>
 
-          <button
-            onClick={reconnect}
-            disabled={isReconnecting}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black border transition-all active:scale-95 cursor-pointer max-h-[38px] ${
-              isReconnecting
-                ? 'bg-amber-500/10 border-amber-500/20 text-amber-400 animate-pulse'
-                : isConnected
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/15 hover:border-emerald-500/40'
-                  : 'bg-red-500/10 border-red-500/20 text-red-400 animate-bounce'
-            }`}
-          >
-            {isReconnecting ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                <span>Reconectando...</span>
-              </>
-            ) : isConnected ? (
-              <>
-                <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-                <span>🟢 Online</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="w-3.5 h-3.5 text-red-400" />
-                <span>🔴 Desconectado</span>
-              </>
-            )}
-          </button>
+          <div className="w-11" />
         </div>
       </header>
 

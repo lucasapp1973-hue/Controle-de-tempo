@@ -692,7 +692,7 @@ export default function ControlView({
         </section>
 
         {/* INPUT DE PRESIDENTE DA REUNIÃO */}
-        <section className="bg-slate-900/40 border border-slate-850 rounded-[24px] p-5 space-y-4">
+        <section className="relative z-20 bg-slate-950/50 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Presidente de Hoje</span>
             <div className="text-[10px] text-slate-500 font-mono hidden sm:block">

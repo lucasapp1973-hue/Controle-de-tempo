@@ -1,4 +1,4 @@
-import { Clock, Play, Pause, SkipForward, ArrowDown, ArrowUp } from 'lucide-react';
+import { Clock, Play, Pause, SkipForward, ArrowDown, ArrowUp, Square } from 'lucide-react';
 import { TimerState, TimerMode } from '../types';
 
 export interface TimerCardProps {
@@ -168,7 +168,7 @@ export default function TimerCard({
       {!isReadOnly && (
         <>
           <div className="mt-5 grid grid-cols-2 gap-3">
-            {/* Play / Pause Toggle Button */}
+            {/* Play / Stop Toggle Button */}
             {!isRunning ? (
               <button
                 type="button"
@@ -177,17 +177,17 @@ export default function TimerCard({
                 className="py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/20 cursor-pointer text-sm"
               >
                 <Play className="w-4 h-4 fill-current animate-pulse" />
-                Iniciar
+                Play
               </button>
             ) : (
               <button
                 type="button"
                 onClick={pauseTimer}
                 disabled={!isConnected}
-                className="py-3 px-4 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-950/20 cursor-pointer text-sm"
+                className="py-3 px-4 bg-gradient-to-r from-red-650 to-orange-600 hover:from-red-550 hover:to-orange-550 active:scale-[0.97] transition-all disabled:opacity-50 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-950/20 cursor-pointer text-sm"
               >
-                <Pause className="w-4 h-4 fill-current" />
-                Pausar
+                <Square className="w-4 h-4 fill-current" />
+                Parar
               </button>
             )}
 

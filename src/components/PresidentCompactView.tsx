@@ -18,7 +18,7 @@ export default function PresidentCompactView({
   onBack,
   systemConfig,
 }: PresidentCompactViewProps) {
-  const { isRunning, mode, currentTime, initialDuration, schedule = [], activeId, elapsedTime } = timerState;
+  const { isRunning, mode, currentTime, initialDuration, schedule = [], activeId, elapsedTime, isStopped } = timerState;
 
   // Force compact and pinned/fixed view on entry, as requested by the user
   const [isCompact, setIsCompact] = useState<boolean>(true);
@@ -123,18 +123,20 @@ export default function PresidentCompactView({
       <main className="flex-1 flex flex-col justify-center items-center py-4 px-4 w-full max-w-md mx-auto space-y-4">
         
         {/* REUSED STOPWATCH VIEW */}
-        <div className="w-full">
-          <TimerCard
-            timerState={timerState}
-            systemConfig={systemConfig}
-            isReadOnly={true}
-            isCompact={isCompact}
-            isConnected={isConnected}
-          />
-        </div>
+        {!isStopped && (
+          <div className="w-full">
+            <TimerCard
+              timerState={timerState}
+              systemConfig={systemConfig}
+              isReadOnly={true}
+              isCompact={isCompact}
+              isConnected={isConnected}
+            />
+          </div>
+        )}
 
         {/* COMPLEMENTARY REVEAL DETAILS PANEL (hidden in compact mode) */}
-        {!isCompact && (
+        {(!isCompact || isStopped) && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

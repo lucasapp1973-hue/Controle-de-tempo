@@ -398,7 +398,7 @@ export default function App() {
 
   // Render Selection Portal
   return (
-    <div className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-y-auto bg-slate-950 text-slate-100 flex flex-col justify-between relative font-sans">
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-950 text-slate-100 flex flex-col justify-between relative font-sans select-none">
       
       {/* Glow Effects in background */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -408,213 +408,101 @@ export default function App() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#020617_1px,transparent_1px),linear-gradient(to_bottom,#020617_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 pointer-events-none" />
 
       {/* Main Container Content */}
-      <div className="w-full max-w-4xl mx-auto px-6 py-12 flex-1 flex flex-col justify-center space-y-12 relative z-10">
+      <div className="w-full max-w-md mx-auto px-6 py-12 flex-1 flex flex-col justify-center space-y-10 relative z-10">
         
         {/* Header Branding */}
-        <header className="text-center space-y-5 flex flex-col items-center">
+        <header className="text-center space-y-4 flex flex-col items-center">
           <motion.h1
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="font-extrabold tracking-tight text-white flex flex-col items-center gap-1.5"
+            className="font-extrabold tracking-tight text-white flex flex-col items-center gap-1"
           >
-            <span className="text-4xl sm:text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400 inline-block">Sincronizador</span>
-            <span className="text-xl sm:text-2xl md:text-3xl inline-block text-transparent [-webkit-text-stroke:1.2px_rgba(255,255,255,0.8)] max-sm:[-webkit-text-stroke:1px_rgba(255,255,255,0.8)] selection:text-white tracking-widest uppercase mt-0.5 opacity-90">de Tempo</span>
+            <span className="text-5xl sm:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400 inline-block font-sans font-medium">Sincronizador</span>
+            <span className="text-[22px] sm:text-[26px] inline-block text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.85)] tracking-widest uppercase mt-1 opacity-95">de Tempo</span>
           </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.25, duration: 0.5 }}
-            className="text-slate-400 max-w-lg mx-auto text-sm sm:text-base leading-relaxed"
-          >
-            Conecte múltiplos dispositivos na mesma rede em tempo real. Use um smartphone para controlar o display gigante do computador, notebook ou tablet.
-          </motion.p>
         </header>
 
-        {/* Dynamic Connected Counter */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="flex justify-center"
-        >
-          <div className="flex items-center gap-6 bg-slate-900/50 border border-slate-800/80 rounded-xl px-5 py-3 shadow-md">
-            <div className="flex items-center gap-2">
-              <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-ping' : 'bg-red-400'}`} />
-              <span className="text-xs font-semibold tracking-wider text-slate-300 uppercase">
-                Servidor: {isConnected ? 'Conectado' : 'Carregando...'}
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Portal Options Section */}
-        <section className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 w-full max-w-7xl mx-auto">
+        {/* Portal Options Section (Immersive Vertical Bento exactly like photo) */}
+        <section className="w-full max-w-sm mx-auto bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-900 shadow-2xl flex flex-col gap-4">
           
-          {/* Card 1: Display */}
+          {/* Card 1: . Display */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4, duration: 0.4 }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
             onClick={() => selectMode('display')}
-            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-emerald-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
+            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-emerald-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
-            <div className="space-y-4">
-              <div className="p-3 bg-emerald-500/10 text-emerald-400 w-fit rounded-xl group-hover:bg-emerald-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Tv className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white group-hover:text-emerald-400 transition-colors uppercase">
-                  1. Display
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Mostra o cronômetro com números extremamente gigantes em tela cheia. Perfeito para projetores de estúdio, TV ou tablets suspensos na parede.
-                </p>
-              </div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-teal-950/40 border border-teal-500/25 text-teal-400 shrink-0 transform group-hover:scale-105 duration-300">
+              <Tv className="w-7 h-7 text-emerald-400" />
             </div>
-            <div className="mt-6 flex items-center justify-between text-xs font-bold text-emerald-400 uppercase tracking-widest">
-              <span>Iniciar Monitor</span>
-              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            <div className="flex-1 text-left">
+              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-emerald-400 transition-colors uppercase">
+                . Display
+              </h2>
             </div>
+            <span className="text-slate-600 group-hover:text-emerald-400 transition-colors text-lg pr-1">→</span>
           </motion.div>
 
-          {/* Card 2: Control */}
+          {/* Card 2: Controle */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.45, duration: 0.4 }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 }}
             onClick={handleControlClick}
-            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
+            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-indigo-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
-            <div className="space-y-4">
-              <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Smartphone className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
-                  2. Controle
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Cadastre participantes, reordene-os e controle o cronômetro em tempo real do seu smartphone, PC ou tablet de controle.
-                </p>
-              </div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-950/45 border border-indigo-550/20 text-indigo-400 shrink-0 transform group-hover:scale-105 duration-300">
+              <Smartphone className="w-7 h-7 text-indigo-450" />
             </div>
-            <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
-              <span>Abrir Controle</span>
-              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            <div className="flex-1 text-left">
+              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors uppercase">
+                Controle
+              </h2>
             </div>
+            <span className="text-slate-600 group-hover:text-indigo-400 transition-colors text-lg pr-1">→</span>
           </motion.div>
 
-          {/* Card 3: Presidente */}
+          {/* Card 3: 3. Presidente */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
             onClick={() => selectMode('superintendent')}
-            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
+            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-indigo-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
-            <div className="space-y-4">
-              <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Minimize2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
-                  3. Presidente
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Cronômetro companion discreto para o presidente. Janela compacta pinada para acompanhar do canto da tela se o manual Melhore está sendo aplicado.
-                </p>
-              </div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-950/45 border border-indigo-550/20 text-indigo-400 shrink-0 transform group-hover:scale-105 duration-300">
+              <Minimize2 className="w-7 h-7 text-indigo-455" />
             </div>
-            <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
-              <span>Abrir Presidente</span>
-              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            <div className="flex-1 text-left">
+              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors uppercase">
+                3. Presidente
+              </h2>
             </div>
+            <span className="text-slate-600 group-hover:text-indigo-400 transition-colors text-lg pr-1">→</span>
           </motion.div>
 
-          {/* Card 4: Historico */}
+          {/* Card 4: 4. Histórico */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.55, duration: 0.4 }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.45 }}
             onClick={() => selectMode('history')}
-            className="group relative bg-slate-900/40 hover:bg-slate-900 border border-slate-800 hover:border-indigo-500/40 rounded-2xl p-6 shadow-xl cursor-pointer hover:shadow-indigo-500/5 transition-all text-left flex flex-col justify-between h-full min-h-[220px]"
+            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-indigo-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
           >
-            <div className="space-y-4">
-              <div className="p-3 bg-indigo-500/10 text-indigo-400 w-fit rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition-all transform group-hover:scale-105 duration-300">
-                <Calendar className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white group-hover:text-indigo-400 transition-colors uppercase">
-                  4. Histórico
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Consulte todas as reuniões já realizadas com os indicadores estatísticos detalhados de cada orador e tabelas com cores dinâmicas.
-                </p>
-              </div>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-950/45 border border-indigo-550/20 text-indigo-400 shrink-0 transform group-hover:scale-105 duration-300">
+              <Calendar className="w-7 h-7 text-indigo-455" />
             </div>
-            <div className="mt-6 flex items-center justify-between text-xs font-bold text-indigo-400 uppercase tracking-widest">
-              <span>Abrir Histórico</span>
-              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
+            <div className="flex-1 text-left">
+              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors uppercase">
+                4. Histórico
+              </h2>
             </div>
-          </motion.div>
-
-          {/* Card 5: Demonstração */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.6, duration: 0.4 }}
-            onClick={() => {
-              sessionStore.setSessionType('demo');
-              setAppMode('control');
-            }}
-            className={`group relative border rounded-2xl p-6 shadow-xl cursor-pointer transition-all text-left flex flex-col justify-between h-full min-h-[220px] ${
-              isDemo 
-                ? 'bg-amber-500/15 border-amber-500/80 shadow-amber-500/10 hover:bg-amber-500/20' 
-                : 'bg-slate-900/40 hover:bg-slate-900 border-slate-800 hover:border-amber-500/40 hover:shadow-amber-500/5'
-            }`}
-          >
-            <div className="space-y-4">
-              <div className={`p-3 w-fit rounded-xl transition-all transform group-hover:scale-105 duration-300 ${
-                isDemo 
-                  ? 'bg-amber-500 text-slate-950 font-black' 
-                  : 'bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950'
-              }`}>
-                <span className="text-base leading-none">🎬</span>
-              </div>
-              <div>
-                <h2 className="text-base font-black text-white group-hover:text-amber-400 transition-colors uppercase">
-                  🎬 DEMONSTRAÇÃO
-                </h2>
-                <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-                  Ambiente simulador de treinamento e testes sem interferência nos dados reais e relatórios do Firebase.
-                </p>
-              </div>
-            </div>
-            <div className={`mt-6 flex items-center justify-between text-xs font-bold uppercase tracking-widest ${isDemo ? 'text-amber-400' : 'text-slate-500 group-hover:text-amber-400'}`}>
-              <span>{isDemo ? 'Desativar Demo' : 'Ativar Demo'}</span>
-              <span className="transform translate-x-0 group-hover:translate-x-1.5 transition-transform">→</span>
-            </div>
+            <span className="text-slate-600 group-hover:text-indigo-400 transition-colors text-lg pr-1">→</span>
           </motion.div>
 
         </section>
-
-        {/* Bottom Local Info / Instruction Box */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="bg-slate-900/20 border border-slate-850/60 rounded-xl p-4 max-w-2xl mx-auto text-xs text-slate-500 space-y-2 leading-relaxed"
-        >
-          <div className="font-bold text-slate-400 uppercase tracking-wider text-center flex items-center justify-center gap-1.5">
-            <Laptop className="w-3.5 h-3.5 text-indigo-400" />
-            Como usar em tela dupla?
-          </div>
-          <p className="text-center">
-            Compartilhe a URL desta página ou abra em outro dispositivo. Configure o primeiro dispositivo como <b>Monitor</b> e o segundo como <b>Controle</b>. Ao realizar comandos no controle, o display reagirá instantaneamente!
-          </p>
-        </motion.div>
 
       </div>
 

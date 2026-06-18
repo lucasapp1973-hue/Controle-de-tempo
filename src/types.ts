@@ -26,6 +26,7 @@ export interface TimerState {
   activeId: string | null; // ID of the currently active schedule participant
   elapsedTime: number; // actual seconds spent on the current active participant
   meetings?: CompletedMeeting[];
+  isStopped?: boolean;
 }
 
 export interface TimerConfig {

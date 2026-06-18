@@ -47,6 +47,7 @@ interface TimerState {
   activeId: string | null;
   elapsedTime: number; // actual seconds spent on active item
   meetings: CompletedMeeting[];
+  isStopped?: boolean;
 }
 
 interface TimerSession {
@@ -63,7 +64,8 @@ const initialRealState: TimerState = {
   schedule: [],
   activeId: null,
   elapsedTime: 0,
-  meetings: []
+  meetings: [],
+  isStopped: false
 };
 
 const getDemoMockSchedule = (): ScheduleItem[] => [
@@ -83,7 +85,8 @@ const initialDemoState = (): TimerState => ({
   schedule: getDemoMockSchedule(),
   activeId: 'dp_a1',
   elapsedTime: 0,
-  meetings: []
+  meetings: [],
+  isStopped: false
 });
 
 let realSession: TimerSession = {
@@ -149,6 +152,7 @@ io.on('connection', (socket) => {
   // Start timer
   socket.on('timer:start', () => {
     session.state.isRunning = true;
+    session.state.isStopped = false;
     session.state.lastUpdated = Date.now();
     startTick(isDemo);
     broadcastState(isDemo);
@@ -157,6 +161,7 @@ io.on('connection', (socket) => {
   // Pause timer
   socket.on('timer:pause', () => {
     session.state.isRunning = false;
+    session.state.isStopped = true;
     session.state.lastUpdated = Date.now();
     stopTick(isDemo);
     broadcastState(isDemo);
@@ -165,6 +170,7 @@ io.on('connection', (socket) => {
   // Resume timer
   socket.on('timer:resume', () => {
     session.state.isRunning = true;
+    session.state.isStopped = false;
     session.state.lastUpdated = Date.now();
     startTick(isDemo);
     broadcastState(isDemo);
@@ -173,6 +179,7 @@ io.on('connection', (socket) => {
   // Reset timer
   socket.on('timer:reset', () => {
     session.state.isRunning = false;
+    session.state.isStopped = false;
     stopTick(isDemo);
     if (session.state.mode === 'regressive') {
       session.state.currentTime = session.state.initialDuration;
@@ -313,6 +320,7 @@ io.on('connection', (socket) => {
     }
 
     session.state.isRunning = false;
+    session.state.isStopped = true;
     stopTick(isDemo);
 
     // 2. Automatically select next participant (status = 'pending')

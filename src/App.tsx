@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar, X, Minimize2 } from 'lucide-react';
+import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar, X, User } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSocket } from './hooks/useSocket';
 import DisplayView from './components/DisplayView';
@@ -40,6 +40,8 @@ export default function App() {
   const [passwordError, setPasswordError] = useState('');
   const [systemConfig, setSystemConfig] = useState<SystemConfig>(DEFAULT_CONFIG);
   const [isDemo, setIsDemo] = useState(sessionStore.isDemo());
+  const [litCard, setLitCard] = useState<string | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
   useEffect(() => {
     const handleSessionChanged = () => {
@@ -68,9 +70,23 @@ export default function App() {
     return (now - past) < 7200000;
   };
 
+  const handlePortalCardClick = (mode: 'display' | 'control' | 'superintendent' | 'history', action: () => void) => {
+    if (selectedCardId) return;
+    setSelectedCardId(mode);
+    setLitCard(mode);
+    setTimeout(() => {
+      action();
+      // Reset transition state for when they go back to the portal
+      setTimeout(() => {
+        setSelectedCardId(null);
+        setLitCard(null);
+      }, 400);
+    }, 550);
+  };
+
   const handleControlClick = () => {
     if (isAuthorized()) {
-      selectMode('control');
+      handlePortalCardClick('control', () => selectMode('control'));
     } else {
       setShowPasswordPrompt(true);
       setPassword('');
@@ -83,7 +99,7 @@ export default function App() {
     if (password === (systemConfig?.senhaControle || '2121')) {
       localStorage.setItem('control_auth_timestamp', Date.now().toString());
       setShowPasswordPrompt(false);
-      selectMode('control');
+      handlePortalCardClick('control', () => selectMode('control'));
     } else {
       setPasswordError('Senha incorreta! Apenas irmãos autorizados têm acesso.');
     }
@@ -423,85 +439,136 @@ export default function App() {
           </motion.h1>
         </header>
 
-        {/* Portal Options Section (Immersive Vertical Bento exactly like photo) */}
-        <section className="w-full max-w-sm mx-auto bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-900 shadow-2xl flex flex-col gap-4">
-          
-          {/* Card 1: . Display */}
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            onClick={() => selectMode('display')}
-            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-emerald-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
-          >
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-teal-950/40 border border-teal-500/25 text-teal-400 shrink-0 transform group-hover:scale-105 duration-300">
-              <Tv className="w-7 h-7 text-emerald-400" />
-            </div>
-            <div className="flex-1 text-left">
-              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-emerald-400 transition-colors uppercase">
-                . Display
-              </h2>
-            </div>
-            <span className="text-slate-600 group-hover:text-emerald-400 transition-colors text-lg pr-1">→</span>
-          </motion.div>
+        {/* Portal Options Section (Immersive Vertical Bento with Backlight & Expand Animations) */}
+        <section
+          onPointerMove={(e) => {
+            if (selectedCardId) return;
+            const element = document.elementFromPoint(e.clientX, e.clientY);
+            if (!element) return;
+            const card = element.closest('[data-card-id]');
+            if (card) {
+              setLitCard(card.getAttribute('data-card-id'));
+            } else {
+              setLitCard(null);
+            }
+          }}
+          onPointerLeave={() => {
+            if (!selectedCardId) setLitCard(null);
+          }}
+          onTouchMove={(e) => {
+            if (selectedCardId) return;
+            const touch = e.touches[0];
+            if (!touch) return;
+            const element = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (!element) return;
+            const card = element.closest('[data-card-id]');
+            if (card) {
+              setLitCard(card.getAttribute('data-card-id'));
+            } else {
+              setLitCard(null);
+            }
+          }}
+          onTouchEnd={() => {
+            if (!selectedCardId) setLitCard(null);
+          }}
+          className="w-full max-w-sm mx-auto bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-900 shadow-2xl flex flex-col gap-4 relative overflow-visible"
+        >
+          {[
+            {
+              id: 'display',
+              label: '. Display',
+              action: () => selectMode('display'),
+              icon: Tv,
+              color: 'from-emerald-500/30 to-teal-500/30',
+              iconColor: 'text-emerald-400',
+              iconBg: 'bg-teal-950/40 border-teal-500/20'
+            },
+            {
+              id: 'control',
+              label: 'Controle',
+              action: handleControlClick,
+              icon: Smartphone,
+              color: 'from-indigo-500/30 to-purple-500/30',
+              iconColor: 'text-indigo-400',
+              iconBg: 'bg-indigo-950/40 border-indigo-500/20'
+            },
+            {
+              id: 'superintendent',
+              label: '3. Presidente',
+              action: () => selectMode('superintendent'),
+              icon: User,
+              color: 'from-blue-500/30 to-indigo-500/30',
+              iconColor: 'text-indigo-400',
+              iconBg: 'bg-indigo-950/40 border-indigo-550/20'
+            },
+            {
+              id: 'history',
+              label: '4. Histórico',
+              action: () => selectMode('history'),
+              icon: Calendar,
+              color: 'from-amber-500/30 to-orange-500/30',
+              iconColor: 'text-amber-400',
+              iconBg: 'bg-amber-950/40 border-amber-500/20'
+            }
+          ].map((card) => {
+            const isSelected = selectedCardId === card.id;
+            const isAnySelected = selectedCardId !== null;
+            const isLit = litCard === card.id;
+            const CardIcon = card.icon;
 
-          {/* Card 2: Controle */}
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.35 }}
-            onClick={handleControlClick}
-            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-indigo-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
-          >
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-950/45 border border-indigo-550/20 text-indigo-400 shrink-0 transform group-hover:scale-105 duration-300">
-              <Smartphone className="w-7 h-7 text-indigo-450" />
-            </div>
-            <div className="flex-1 text-left">
-              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors uppercase">
-                Controle
-              </h2>
-            </div>
-            <span className="text-slate-600 group-hover:text-indigo-400 transition-colors text-lg pr-1">→</span>
-          </motion.div>
+            let animateValue = {};
+            if (isAnySelected) {
+              if (isSelected) {
+                animateValue = {
+                  scale: 1.15,
+                  y: -15,
+                  opacity: [1, 1, 0],
+                  filter: 'blur(3px)',
+                  transition: { duration: 0.5, ease: 'easeInOut' }
+                };
+              } else {
+                animateValue = {
+                  opacity: 0,
+                  scale: 0.8,
+                  x: card.id === 'display' || card.id === 'superintendent' ? -150 : 150,
+                  transition: { duration: 0.45, ease: 'easeIn' }
+                };
+              }
+            } else {
+              animateValue = {
+                opacity: 1,
+                scale: 1,
+                x: 0,
+              };
+            }
 
-          {/* Card 3: 3. Presidente */}
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            onClick={() => selectMode('superintendent')}
-            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-indigo-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
-          >
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-950/45 border border-indigo-550/20 text-indigo-400 shrink-0 transform group-hover:scale-105 duration-300">
-              <Minimize2 className="w-7 h-7 text-indigo-455" />
-            </div>
-            <div className="flex-1 text-left">
-              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors uppercase">
-                3. Presidente
-              </h2>
-            </div>
-            <span className="text-slate-600 group-hover:text-indigo-400 transition-colors text-lg pr-1">→</span>
-          </motion.div>
+            return (
+              <div key={card.id} className="relative overflow-visible" data-card-id={card.id}>
+                {/* Backlight Glow */}
+                <div
+                  className={`absolute -inset-1.5 rounded-2xl bg-gradient-to-r ${card.color} opacity-0 ${isLit ? 'opacity-50 blur-2xl scale-106' : ''} transition-all duration-300 pointer-events-none -z-10`}
+                />
 
-          {/* Card 4: 4. Histórico */}
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.45 }}
-            onClick={() => selectMode('history')}
-            className="group flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 border border-slate-850/40 hover:border-indigo-500/35 rounded-2xl p-3.5 shadow-md cursor-pointer transition-all duration-200 active:scale-[0.98]"
-          >
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-indigo-950/45 border border-indigo-550/20 text-indigo-400 shrink-0 transform group-hover:scale-105 duration-300">
-              <Calendar className="w-7 h-7 text-indigo-455" />
-            </div>
-            <div className="flex-1 text-left">
-              <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-400 transition-colors uppercase">
-                4. Histórico
-              </h2>
-            </div>
-            <span className="text-slate-600 group-hover:text-indigo-400 transition-colors text-lg pr-1">→</span>
-          </motion.div>
-
+                <motion.div
+                  animate={animateValue}
+                  whileHover={!isAnySelected ? { scale: 1.02 } : undefined}
+                  whileTap={!isAnySelected ? { scale: 0.98 } : undefined}
+                  onClick={() => handlePortalCardClick(card.id as any, card.action)}
+                  className={`relative flex items-center gap-4 bg-slate-950/65 hover:bg-slate-950 rounded-2xl p-3.5 shadow-md cursor-pointer transition-colors duration-300 border-none select-none overflow-hidden group`}
+                >
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${card.iconBg} shrink-0`}>
+                    <CardIcon className={`w-7 h-7 ${card.iconColor}`} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <h2 className="text-lg font-bold text-white tracking-wide group-hover:text-indigo-300 transition-colors uppercase">
+                      {card.label}
+                    </h2>
+                  </div>
+                  <span className="text-slate-600 group-hover:text-white transition-colors text-lg pr-1">→</span>
+                </motion.div>
+              </div>
+            );
+          })}
         </section>
 
       </div>

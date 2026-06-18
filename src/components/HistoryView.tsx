@@ -330,30 +330,34 @@ export default function HistoryView({
       <div className="absolute top-1/4 left-1/3 w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Header */}
-      <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 p-4 sticky top-0 z-35">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <SystemModuleReturnIcon onClick={onBack} />
+      <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 pt-8 pb-4 sm:pt-10 sticky top-0 z-35">
+        <div className="max-w-4xl mx-auto flex items-center justify-between relative min-h-[46px]">
+          <div className="z-10 flex items-center">
+            <SystemModuleReturnIcon onClick={onBack} />
+          </div>
 
-          <div className="flex flex-col items-center gap-1 select-none">
-            <AnalogueClock type="historico" />
-            <span className="text-xs font-black tracking-widest text-slate-300 uppercase">Histórico</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-0">
+            <div className="flex flex-col items-center gap-1">
+              <AnalogueClock type="historico" />
+              <span className="text-sm sm:text-base md:text-lg font-black tracking-widest text-white uppercase">Histórico</span>
+            </div>
           </div>
 
           <div
-            className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
+            className={`z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
               isConnected
                 ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
                 : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
             }`}
           >
             {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
-            <span>{isConnected ? '🟢 ONLINE' : '🔴 DESCONECTADO'}</span>
+            <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
           </div>
         </div>
       </header>
 
       {/* Sub-navigation Menu bar */}
-      <div className="w-full bg-slate-950/90 border-b border-slate-900 sticky top-[73px] z-30">
+      <div className="w-full bg-slate-950/90 border-b border-slate-900 sticky top-[98px] sm:top-[112px] z-30">
         <div className="max-w-4xl mx-auto px-4 flex gap-1 items-center overflow-x-auto py-2.5 no-scrollbar">
           {[
             { id: 'ultima', label: '⭐ Última Reunião' },

@@ -499,17 +499,33 @@ export default function ControlView({
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
-      {/* Dynamic Sync Top Bar */}
-      <header className="bg-transparent border-none p-4 sticky top-0 z-30">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="w-11" />
-
-          <div className="flex flex-col items-center gap-1 select-none">
-            <AnalogueClock type="controle" />
-            <span className="text-xs font-black tracking-widest text-slate-300 uppercase">Controle</span>
+      {/* Standardized Header */}
+      <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 pt-8 pb-4 sm:pt-10 sticky top-0 z-35 text-slate-100">
+        <div className="max-w-4xl mx-auto flex items-center justify-between relative min-h-[46px]">
+          {/* Back button */}
+          <div className="z-10 flex items-center">
+            <SystemModuleReturnIcon onClick={onBack} />
           </div>
 
-          <div className="w-11" />
+          {/* Centered Clock & Title */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none z-0">
+            <div className="flex flex-col items-center gap-1">
+              <AnalogueClock type="controle" />
+              <span className="text-sm sm:text-base md:text-lg font-black tracking-widest text-white uppercase">Controle</span>
+            </div>
+          </div>
+
+          {/* Wifi status on right */}
+          <div
+            className={`z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
+              isConnected
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
+            }`}
+          >
+            {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
+            <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
+          </div>
         </div>
       </header>
 

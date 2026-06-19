@@ -40,5 +40,17 @@ service cloud.firestore {
       allow read: if true;
       allow create, update, delete: if true;
     }
+
+    // brochures rules
+    match /brochuras/{brochuraId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // generic lessons rules
+    match /licoes/{licaoId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
   }
 }

@@ -100,8 +100,8 @@ export function useSocket() {
   }, []);
 
   // Schedule Management APIs
-  const addScheduleItem = useCallback((name: string, partType: string, expectedTime: number, avaliada?: boolean, licaoNumero?: number | null) => {
-    socketRef.current?.emit('schedule:add', { name, partType, expectedTime, avaliada, licaoNumero });
+  const addScheduleItem = useCallback((name: string, partType: string, expectedTime: number, avaliada?: boolean, brochuraId?: string | null, licaoNumero?: number | null) => {
+    socketRef.current?.emit('schedule:add', { name, partType, expectedTime, avaliada, brochuraId, licaoNumero });
   }, []);
 
   const editScheduleItem = useCallback((item: ScheduleItem) => {

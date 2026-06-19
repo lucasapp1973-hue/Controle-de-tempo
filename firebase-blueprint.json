@@ -145,6 +145,71 @@
       },
       "required": ["numero", "titulo", "objetivo", "resumoCurto", "comoFazer"]
     },
+    "Brochura": {
+      "title": "Brochura",
+      "description": "Especificação de uma Brochura de avaliação para discursos de treinamento",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID identificador da brochura"
+        },
+        "nome": {
+          "type": "string",
+          "description": "Nome da Brochura"
+        },
+        "ativa": {
+          "type": "boolean",
+          "description": "Indica se a brochura está ativa para ser selecionada"
+        }
+      },
+      "required": ["id", "nome", "ativa"]
+    },
+    "LicaoConteudoNode": {
+      "title": "LicaoConteudoNode",
+      "description": "Nó de conteúdo com tipo estruturado da lição",
+      "type": "object",
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["titulo", "paragrafo", "bullet", "dica", "pregacao"],
+          "description": "Tipo de nó de conteúdo"
+        },
+        "texto": {
+          "type": "string",
+          "description": "Texto contido no nó"
+        }
+      },
+      "required": ["tipo", "texto"]
+    },
+    "Licao": {
+      "title": "Licao",
+      "description": "Declaração de uma lição genérica contida em uma brochura",
+      "type": "object",
+      "properties": {
+        "brochuraId": {
+          "type": "string",
+          "description": "ID da brochura correspondente"
+        },
+        "numero": {
+          "type": "number",
+          "description": "Número da lição"
+        },
+        "titulo": {
+          "type": "string",
+          "description": "Título da lição"
+        },
+        "ordem": {
+          "type": "number",
+          "description": "Ordem de ordenação"
+        },
+        "conteudo": {
+          "type": "array",
+          "description": "Conteudo estruturado da lição"
+        }
+      },
+      "required": ["brochuraId", "numero", "titulo", "ordem", "conteudo"]
+    },
     "Participante": {
       "title": "Participante",
       "description": "Cadastro de participantes para designações e histórico",
@@ -200,6 +265,18 @@
         "$ref": "#/entities/LicaoMelhore"
       },
       "description": "Coleção contendo as lições cadastráveis da brochura Melhore"
+    },
+    "brochuras": {
+      "schema": {
+        "$ref": "#/entities/Brochura"
+      },
+      "description": "Coleção contendo as brochuras de avaliação disponíveis"
+    },
+    "licoes": {
+      "schema": {
+        "$ref": "#/entities/Licao"
+      },
+      "description": "Coleção de lições contendo toda a estrutura de conteúdo por brochura"
     }
   }
 }

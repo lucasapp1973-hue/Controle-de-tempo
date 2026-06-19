@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
 import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User, BookOpen } from 'lucide-react';
-import { TimerState, TimerMode, ScheduleItem } from '../types';
+import { TimerState, TimerMode, ScheduleItem, Brochura, Licao } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
 import { reunioesService } from '../services/reunioesService';
@@ -71,7 +71,7 @@ interface ControlViewProps {
   resumeTimer: () => void;
   resetTimer: () => void;
   setTimer: (minutes: number, seconds: number, mode: TimerMode) => void;
-  addScheduleItem: (name: string, partType: string, expectedTime: number, avaliada?: boolean, licaoNumero?: number | null) => void;
+  addScheduleItem: (name: string, partType: string, expectedTime: number, avaliada?: boolean, brochuraId?: string | null, licaoNumero?: number | null) => void;
   editScheduleItem: (item: ScheduleItem) => void;
   removeScheduleItem: (id: string) => void;
   reorderSchedule: (newList: ScheduleItem[]) => void;
@@ -267,6 +267,7 @@ export default function ControlView({
   const [addPartType, setAddPartType] = useState('');
   const [addMinutes, setAddMinutes] = useState(4);
   const [isAvaliada, setIsAvaliada] = useState(false);
+  const [selectedBrochuraId, setSelectedBrochuraId] = useState<string>('melhore');
   const [selectedLicao, setSelectedLicao] = useState<number>(1);
 
   // Inline Edit State
@@ -275,10 +276,21 @@ export default function ControlView({
   const [editPartType, setEditPartType] = useState('');
   const [editMinutes, setEditMinutes] = useState(4);
   const [editIsAvaliada, setEditIsAvaliada] = useState(false);
+  const [editSelectedBrochuraId, setEditSelectedBrochuraId] = useState<string>('melhore');
   const [editSelectedLicao, setEditSelectedLicao] = useState<number>(1);
 
-  // Lessons list cache
-  const [licoesList, setLicoesList] = useState<LicaoMelhore[]>([]);
+  // Lists and Cache
+  const [brochuras, setBrochuras] = useState<Brochura[]>([]);
+  const [licoesList, setLicoesList] = useState<Licao[]>([]);
+  const [editLicoesList, setEditLicoesList] = useState<Licao[]>([]);
+
+  // Text Importer States
+  const [newBrochuraName, setNewBrochuraName] = useState('');
+  const [newBrochuraId, setNewBrochuraId] = useState('');
+  const [importText, setImportText] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Dropdown Open/Close states
   const [showNameDropdown, setShowNameDropdown] = useState(false);
@@ -289,14 +301,39 @@ export default function ControlView({
   const [showEditPartTypeDropdown, setShowEditPartTypeDropdown] = useState(false);
   const [showEditMinutesDropdown, setShowEditMinutesDropdown] = useState(false);
 
-  // Fetch lessons once upon mounting (Performance)
+  // Initial load of brochures and default lessons
   useEffect(() => {
-    const loadLicoesData = async () => {
-      const data = await licoesService.fetchLicoes();
-      setLicoesList(data);
+    const initData = async () => {
+      const bList = await licoesService.fetchBrochuras();
+      setBrochuras(bList);
+      const lList = await licoesService.fetchLicoesByBrochura(selectedBrochuraId);
+      setLicoesList(lList);
     };
-    loadLicoesData();
+    initData();
   }, []);
+
+  // Fetch lessons when selected brochure changes (creation form)
+  useEffect(() => {
+    const load = async () => {
+      const data = await licoesService.fetchLicoesByBrochura(selectedBrochuraId);
+      setLicoesList(data);
+      if (data.length > 0) {
+        setSelectedLicao(data[0].numero);
+      } else {
+        setSelectedLicao(1);
+      }
+    };
+    load();
+  }, [selectedBrochuraId]);
+
+  // Fetch lessons when selected brochure changes (inline edit form)
+  useEffect(() => {
+    const load = async () => {
+      const data = await licoesService.fetchLicoesByBrochura(editSelectedBrochuraId);
+      setEditLicoesList(data);
+    };
+    load();
+  }, [editSelectedBrochuraId]);
 
   // Operator Vibration Trigger on threshold remaining and completion/overrun
   useEffect(() => {
@@ -487,6 +524,7 @@ export default function ControlView({
       addPartType,
       addMinutes * 60,
       isAvaliada,
+      isAvaliada ? selectedBrochuraId : null,
       isAvaliada ? selectedLicao : null
     );
     setAddName('');
@@ -503,6 +541,7 @@ export default function ControlView({
     setEditPartType(item.partType);
     setEditMinutes(Math.floor(item.expectedTime / 60));
     setEditIsAvaliada(item.avaliada ?? false);
+    setEditSelectedBrochuraId(item.brochuraId ?? 'melhore');
     setEditSelectedLicao(item.licaoNumero ?? 1);
   };
 
@@ -514,6 +553,7 @@ export default function ControlView({
       partType: editPartType,
       expectedTime: editMinutes * 60,
       avaliada: editIsAvaliada,
+      brochuraId: editIsAvaliada ? editSelectedBrochuraId : null,
       licaoNumero: editIsAvaliada ? editSelectedLicao : null,
     });
     setEditingId(null);
@@ -947,33 +987,49 @@ export default function ControlView({
                             />
                           </div>
                         </div>
-                        <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 my-2 space-y-2">
-                          <label className="flex items-center gap-2 cursor-pointer select-none">
-                            <input
-                              type="checkbox"
-                              checked={editIsAvaliada}
-                              onChange={(e) => setEditIsAvaliada(e.target.checked)}
-                              className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 accent-indigo-500"
-                            />
-                            <span className="text-xs text-slate-300 font-semibold">Editar: Parte avaliada pela Brochura</span>
-                          </label>
-                          {editIsAvaliada && (
-                            <div className="space-y-1">
-                              <label className="text-[10px] uppercase font-bold text-slate-500 block">Escolher Lição</label>
-                              <select
-                                value={editSelectedLicao}
-                                onChange={(e) => setEditSelectedLicao(Number(e.target.value))}
-                                className="w-full bg-slate-955 border border-slate-800 rounded-lg py-1 px-2 text-xs text-white"
-                              >
-                                {licoesList.map((licao) => (
-                                  <option key={licao.numero} value={licao.numero}>
-                                    Lição {licao.numero} — {licao.titulo}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          )}
-                        </div>
+                         <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 my-2 space-y-2.5">
+                           <label className="flex items-center gap-2 cursor-pointer select-none">
+                             <input
+                               type="checkbox"
+                               checked={editIsAvaliada}
+                               onChange={(e) => setEditIsAvaliada(e.target.checked)}
+                               className="w-4 h-4 rounded border-slate-700 bg-slate-950 text-indigo-500 accent-indigo-500"
+                             />
+                             <span className="text-xs text-slate-300 font-semibold">Editar: Parte avaliada por brochuras</span>
+                           </label>
+                           {editIsAvaliada && (
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                               <div className="space-y-1">
+                                 <label className="text-[10px] uppercase font-bold text-slate-500 block">Brochura</label>
+                                 <select
+                                   value={editSelectedBrochuraId}
+                                   onChange={(e) => setEditSelectedBrochuraId(e.target.value)}
+                                   className="w-full bg-slate-955 border border-slate-800 rounded-lg py-1 px-2 text-xs text-white"
+                                 >
+                                   {brochuras.map((b) => (
+                                     <option key={b.id} value={b.id}>
+                                       {b.nome}
+                                     </option>
+                                   ))}
+                                 </select>
+                               </div>
+                               <div className="space-y-1">
+                                 <label className="text-[10px] uppercase font-bold text-slate-500 block">Escolher Lição</label>
+                                 <select
+                                   value={editSelectedLicao}
+                                   onChange={(e) => setEditSelectedLicao(Number(e.target.value))}
+                                   className="w-full bg-slate-955 border border-slate-800 rounded-lg py-1 px-2 text-xs text-white"
+                                 >
+                                   {editLicoesList.map((licao) => (
+                                     <option key={licao.numero} value={licao.numero}>
+                                       Lição {licao.numero} — {licao.titulo}
+                                     </option>
+                                   ))}
+                                 </select>
+                               </div>
+                             </div>
+                           )}
+                         </div>
 
                         <div className="flex items-center justify-between gap-2 border-t border-slate-850/40 pt-2">
                           <div className="flex items-center gap-1.5">
@@ -1034,12 +1090,13 @@ export default function ControlView({
                               <span className="text-slate-500 font-normal text-xs">| {item.partType}</span>
                             </div>
 
-                            {item.avaliada && item.licaoNumero && (
-                              <div className="flex items-center gap-1 text-xs text-indigo-400 bg-indigo-950/40 px-2 py-0.5 border border-indigo-900/30 rounded w-fit select-none font-semibold">
-                                <BookOpen className="w-3 h-3" />
-                                <span>Lição {item.licaoNumero} — {licoesService.getLicaoByNumero(item.licaoNumero)?.titulo || 'Melhore'}</span>
-                              </div>
-                            )}
+                             {item.avaliada && item.brochuraId && item.licaoNumero && (
+                               <div className="flex items-center gap-1.5 text-xs text-indigo-400 bg-indigo-950/40 px-2.5 py-1 border border-indigo-900/30 rounded-xl w-fit select-none font-semibold mt-1">
+                                 <BookOpen className="w-3.5 h-3.5 text-indigo-300" />
+                                 <span className="text-[10px] text-indigo-300 uppercase tracking-widest font-extrabold">{licoesService.getBrochuraNome(item.brochuraId)}:</span>
+                                 <span>Lição {item.licaoNumero} — {licoesService.getLicao(item.brochuraId, item.licaoNumero)?.titulo || 'Lição'}</span>
+                               </div>
+                             )}
                           </div>
                         </div>
 
@@ -1236,7 +1293,7 @@ export default function ControlView({
               </div>
             </div>
 
-            {/* Melhore Lesson Selection */}
+            {/* Dynamic Evaluation Brochures & Lesson Selection */}
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <input
@@ -1245,25 +1302,43 @@ export default function ControlView({
                   onChange={(e) => setIsAvaliada(e.target.checked)}
                   className="w-4.5 h-4.5 rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-600/50 focus:ring-2 focus:ring-offset-slate-900 focus:outline-none transition-all cursor-pointer accent-indigo-650"
                 />
-                <span className="text-sm font-semibold text-slate-200">Parte avaliada pela Brochura "Melhore"</span>
+                <span className="text-sm font-semibold text-slate-200">Parte avaliada por brochuras</span>
               </label>
 
               {isAvaliada && (
-                <div className="space-y-1.5 animate-fadeIn">
-                  <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block">
-                    Lição em Avaliação
-                  </label>
-                  <select
-                    value={selectedLicao}
-                    onChange={(e) => setSelectedLicao(Number(e.target.value))}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-3 font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-650/50 focus:border-indigo-600 font-sans text-sm cursor-pointer"
-                  >
-                    {licoesList.map((licao) => (
-                      <option key={licao.numero} value={licao.numero} className="bg-slate-950 text-slate-200 font-sans">
-                        Lição {licao.numero} — {licao.titulo}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 animate-fadeIn">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block">
+                      Brochura
+                    </label>
+                    <select
+                      value={selectedBrochuraId}
+                      onChange={(e) => setSelectedBrochuraId(e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-3 font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-650/50 focus:border-indigo-600 font-sans text-sm cursor-pointer"
+                    >
+                      {brochuras.map((b) => (
+                        <option key={b.id} value={b.id} className="bg-slate-950 text-slate-200 font-sans">
+                          {b.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide block">
+                      Lição em Avaliação
+                    </label>
+                    <select
+                      value={selectedLicao}
+                      onChange={(e) => setSelectedLicao(Number(e.target.value))}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 px-3 font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-650/50 focus:border-indigo-600 font-sans text-sm cursor-pointer"
+                    >
+                      {licoesList.map((licao) => (
+                        <option key={licao.numero} value={licao.numero} className="bg-slate-950 text-slate-200 font-sans">
+                          Lição {licao.numero} — {licao.titulo}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
@@ -1337,6 +1412,176 @@ export default function ControlView({
               </button>
             </div>
           </form>
+        </section>
+
+        {/* COLLAPSIBLE SECTION FOR AUTOMATIC TEXT IMPORTATION OF NEW BROCHURES & LESSONS */}
+        <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+          <div className="flex items-center gap-3 border-b border-slate-850 pb-3">
+            <div className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 p-2 rounded-xl">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">📁 Importação de Brochuras e Lições</h3>
+              <p className="text-xs text-slate-400 font-medium">Cadastre novas brochuras e importe o conteúdo textual automaticamente</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 font-sans">
+            {/* Form de Criação de Brochura */}
+            <div className="bg-slate-950/70 border border-slate-850 p-4 rounded-2xl space-y-4">
+              <h4 className="text-xs font-black text-white uppercase tracking-wider">1. Criar ou Selecionar Brochura</h4>
+              
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Nome da Brochura</label>
+                  <input
+                    type="text"
+                    value={newBrochuraName}
+                    onChange={(e) => {
+                      setNewBrochuraName(e.target.value);
+                      // Auto-slugify
+                      const slug = e.target.value
+                        .toLowerCase()
+                        .normalize('NFD') // splits accented letters
+                        .replace(/[\u0300-\u036f]/g, '') // removes marks
+                        .replace(/[^a-z0-9\s_-]/g, '')
+                        .replace(/\s+/g, '_');
+                      setNewBrochuraId(slug);
+                    }}
+                    placeholder="Ex: Ame as Pessoas — Faça Discípulos"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium font-sans"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">ID Único da Brochura (Slug)</label>
+                  <input
+                    type="text"
+                    value={newBrochuraId}
+                    onChange={(e) => setNewBrochuraId(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
+                    placeholder="Ex: ame_pessoas"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-mono text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!newBrochuraId || !newBrochuraName) return alert("Preencha nome e ID para salvar!");
+                    // Create brochure document in Firebase
+                    const defaultObj = { id: newBrochuraId, nome: newBrochuraName, ativa: true };
+                    
+                    if (sessionStore.isDemo()) {
+                      const updated = [...brochuras.filter(b => b.id !== newBrochuraId), defaultObj];
+                      setBrochuras(updated);
+                    } else {
+                      const { doc, setDoc } = await import('firebase/firestore');
+                      const { db } = await import('../lib/firebase');
+                      await setDoc(doc(db, 'brochuras', newBrochuraId), defaultObj);
+                      const bList = await licoesService.fetchBrochuras();
+                      setBrochuras(bList);
+                    }
+                    setSelectedBrochuraId(newBrochuraId);
+                    setSuccessMessage(`Brochura "${newBrochuraName}" criada e selecionada com sucesso!`);
+                    setNewBrochuraName('');
+                    setNewBrochuraId('');
+                    setTimeout(() => setSuccessMessage(''), 4000);
+                  }}
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-700/55"
+                >
+                  Confirmar e Cadastrar Brochura
+                </button>
+              </div>
+            </div>
+
+            {/* Importador automático de texto */}
+            <div className="bg-slate-950/70 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider">2. Importar Lições por Texto</h4>
+                  <span className="text-[10px] text-indigo-400 font-mono font-bold">Destino: {selectedBrochuraId}</span>
+                </div>
+
+                {/* Drag and drop support */}
+                <div 
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type === 'text/plain') {
+                      const text = await file.text();
+                      setImportText(text);
+                    } else {
+                      alert('Apenas arquivos de texto (.txt) são aceitos no arrastar e soltar.');
+                    }
+                  }}
+                  className={`border-2 border-dashed rounded-xl p-3 text-center transition-all ${
+                    isDragging ? 'border-emerald-500 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/30'
+                  }`}
+                >
+                  <label className="cursor-pointer block">
+                    <span className="text-[11px] font-bold text-slate-300 block">Colar texto abaixo ou arrastar arquivo .txt</span>
+                    <input 
+                      type="file" 
+                      accept=".txt" 
+                      className="hidden" 
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const text = await file.text();
+                          setImportText(text);
+                        }
+                      }}
+                    />
+                    <span className="text-[10px] text-indigo-400 font-medium hover:underline block mt-1">Clique para buscar no dispositivo</span>
+                  </label>
+                </div>
+
+                <textarea
+                  value={importText}
+                  onChange={(e) => setImportText(e.target.value)}
+                  placeholder="Cole o texto aqui. Use estruturas de tipo:&#10;Lição 1 — Comece bem&#10;Este é um parágrafo normal.&#10;• Este é um lição bullet.&#10;Dica: Conselhos ou dicas de ação.&#10;Na pregação: Instruções do campo."
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[120px] font-mono leading-normal"
+                />
+              </div>
+
+              <div className="space-y-2 pt-2">
+                {successMessage && (
+                  <p className="text-xs text-emerald-400 font-black text-center">{successMessage}</p>
+                )}
+                {errorMessage && (
+                  <p className="text-xs text-red-400 font-black text-center">{errorMessage}</p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!importText.trim()) return alert("Insira algum texto para importar!");
+                    setSuccessMessage('');
+                    setErrorMessage('');
+                    const res = await licoesService.importLicoesFromText(selectedBrochuraId, importText);
+                    if (res.success) {
+                      setSuccessMessage(`${res.count} Lições processadas e salvas com sucesso em: ${selectedBrochuraId}!`);
+                      setImportText('');
+                      // Reload current lessons
+                      const freshLicoes = await licoesService.fetchLicoesByBrochura(selectedBrochuraId);
+                      setLicoesList(freshLicoes);
+                    } else {
+                      setErrorMessage(res.error || 'Erro desconhecido');
+                    }
+                  }}
+                  className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-600 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all cursor-pointer text-center tracking-wide"
+                >
+                  Processar e Importar Texto Integralmente
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
       </main>

@@ -1,5 +1,25 @@
 export type TimerMode = 'progressive' | 'regressive';
 
+export interface Brochura {
+  id: string; // e.g. "melhore", "ame_pessoas"
+  nome: string;
+  ativa: boolean;
+}
+
+export interface LicaoConteudoNode {
+  tipo: 'titulo' | 'paragrafo' | 'bullet' | 'dica' | 'pregacao';
+  texto: string;
+}
+
+export interface Licao {
+  id?: string;
+  brochuraId: string;
+  numero: number;
+  titulo: string;
+  ordem: number;
+  conteudo: LicaoConteudoNode[];
+}
+
 export interface ScheduleItem {
   id: string;
   name: string;
@@ -8,6 +28,7 @@ export interface ScheduleItem {
   status: 'pending' | 'active' | 'completed';
   completedTime?: number | null; // in seconds actually taken
   avaliada?: boolean;
+  brochuraId?: string | null;
   licaoNumero?: number | null;
   observacaoPresidente?: string;
   conselhoAplicado?: boolean | null;

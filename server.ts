@@ -29,6 +29,7 @@ interface ScheduleItem {
   status: 'pending' | 'active' | 'completed';
   completedTime?: number | null; // in seconds actually taken
   avaliada?: boolean;
+  brochuraId?: string | null;
   licaoNumero?: number | null;
   observacaoPresidente?: string;
   conselhoAplicado?: boolean | null;
@@ -214,7 +215,7 @@ io.on('connection', (socket) => {
   });
 
   // Schedule management: Add
-  socket.on('schedule:add', (item: { name: string; partType: string; expectedTime: number; avaliada?: boolean; licaoNumero?: number | null }) => {
+  socket.on('schedule:add', (item: { name: string; partType: string; expectedTime: number; avaliada?: boolean; brochuraId?: string | null; licaoNumero?: number | null }) => {
     const newItem: ScheduleItem = {
       id: 'part_' + Math.random().toString(36).substring(2, 9),
       name: item.name,
@@ -223,6 +224,7 @@ io.on('connection', (socket) => {
       status: 'pending',
       completedTime: null,
       avaliada: item.avaliada ?? false,
+      brochuraId: item.brochuraId ?? null,
       licaoNumero: item.licaoNumero ?? null,
       observacaoPresidente: "",
       conselhoAplicado: null

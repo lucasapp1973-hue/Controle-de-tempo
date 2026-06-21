@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User, BookOpen } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User, BookOpen, Heart } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem, Brochura, Licao } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
@@ -283,14 +283,6 @@ export default function ControlView({
   const [brochuras, setBrochuras] = useState<Brochura[]>([]);
   const [licoesList, setLicoesList] = useState<Licao[]>([]);
   const [editLicoesList, setEditLicoesList] = useState<Licao[]>([]);
-
-  // Text Importer States
-  const [newBrochuraName, setNewBrochuraName] = useState('');
-  const [newBrochuraId, setNewBrochuraId] = useState('');
-  const [importText, setImportText] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
 
   // Dropdown Open/Close states
   const [showNameDropdown, setShowNameDropdown] = useState(false);
@@ -1091,11 +1083,20 @@ export default function ControlView({
                             </div>
 
                              {item.avaliada && item.brochuraId && item.licaoNumero && (
-                               <div className="flex items-center gap-1.5 text-xs text-indigo-400 bg-indigo-950/40 px-2.5 py-1 border border-indigo-900/30 rounded-xl w-fit select-none font-semibold mt-1">
-                                 <BookOpen className="w-3.5 h-3.5 text-indigo-300" />
-                                 <span className="text-[10px] text-indigo-300 uppercase tracking-widest font-extrabold">{licoesService.getBrochuraNome(item.brochuraId)}:</span>
-                                 <span>Lição {item.licaoNumero} — {licoesService.getLicao(item.brochuraId, item.licaoNumero)?.titulo || 'Lição'}</span>
-                               </div>
+                               (() => {
+                                 const isAmePessoas = item.brochuraId === 'ame_pessoas';
+                                 return (
+                                   <div className={`flex items-center gap-1.5 text-xs ${isAmePessoas ? 'text-rose-450 bg-rose-950/40 border-rose-900/30' : 'text-indigo-400 bg-indigo-950/40 border-indigo-900/30'} px-2.5 py-1 border rounded-xl w-fit select-none font-semibold mt-1`}>
+                                     {isAmePessoas ? (
+                                       <Heart className="w-3.5 h-3.5 text-rose-300" />
+                                     ) : (
+                                       <BookOpen className="w-3.5 h-3.5 text-indigo-300" />
+                                     )}
+                                     <span className={`text-[10px] ${isAmePessoas ? 'text-rose-300' : 'text-indigo-300'} uppercase tracking-widest font-extrabold`}>{licoesService.getBrochuraNome(item.brochuraId)}:</span>
+                                     <span>Lição {item.licaoNumero} — {licoesService.getLicao(item.brochuraId, item.licaoNumero)?.titulo || 'Lição'}</span>
+                                   </div>
+                                 );
+                               })()
                              )}
                           </div>
                         </div>
@@ -1412,176 +1413,6 @@ export default function ControlView({
               </button>
             </div>
           </form>
-        </section>
-
-        {/* COLLAPSIBLE SECTION FOR AUTOMATIC TEXT IMPORTATION OF NEW BROCHURES & LESSONS */}
-        <section className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center gap-3 border-b border-slate-850 pb-3">
-            <div className="bg-emerald-600/10 border border-emerald-500/20 text-emerald-400 p-2 rounded-xl">
-              <ClipboardList className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-black text-white uppercase tracking-wider">📁 Importação de Brochuras e Lições</h3>
-              <p className="text-xs text-slate-400 font-medium">Cadastre novas brochuras e importe o conteúdo textual automaticamente</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 font-sans">
-            {/* Form de Criação de Brochura */}
-            <div className="bg-slate-950/70 border border-slate-850 p-4 rounded-2xl space-y-4">
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">1. Criar ou Selecionar Brochura</h4>
-              
-              <div className="space-y-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Nome da Brochura</label>
-                  <input
-                    type="text"
-                    value={newBrochuraName}
-                    onChange={(e) => {
-                      setNewBrochuraName(e.target.value);
-                      // Auto-slugify
-                      const slug = e.target.value
-                        .toLowerCase()
-                        .normalize('NFD') // splits accented letters
-                        .replace(/[\u0300-\u036f]/g, '') // removes marks
-                        .replace(/[^a-z0-9\s_-]/g, '')
-                        .replace(/\s+/g, '_');
-                      setNewBrochuraId(slug);
-                    }}
-                    placeholder="Ex: Ame as Pessoas — Faça Discípulos"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium font-sans"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">ID Único da Brochura (Slug)</label>
-                  <input
-                    type="text"
-                    value={newBrochuraId}
-                    onChange={(e) => setNewBrochuraId(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                    placeholder="Ex: ame_pessoas"
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3 text-sm text-mono text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!newBrochuraId || !newBrochuraName) return alert("Preencha nome e ID para salvar!");
-                    // Create brochure document in Firebase
-                    const defaultObj = { id: newBrochuraId, nome: newBrochuraName, ativa: true };
-                    
-                    if (sessionStore.isDemo()) {
-                      const updated = [...brochuras.filter(b => b.id !== newBrochuraId), defaultObj];
-                      setBrochuras(updated);
-                    } else {
-                      const { doc, setDoc } = await import('firebase/firestore');
-                      const { db } = await import('../lib/firebase');
-                      await setDoc(doc(db, 'brochuras', newBrochuraId), defaultObj);
-                      const bList = await licoesService.fetchBrochuras();
-                      setBrochuras(bList);
-                    }
-                    setSelectedBrochuraId(newBrochuraId);
-                    setSuccessMessage(`Brochura "${newBrochuraName}" criada e selecionada com sucesso!`);
-                    setNewBrochuraName('');
-                    setNewBrochuraId('');
-                    setTimeout(() => setSuccessMessage(''), 4000);
-                  }}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-700/55"
-                >
-                  Confirmar e Cadastrar Brochura
-                </button>
-              </div>
-            </div>
-
-            {/* Importador automático de texto */}
-            <div className="bg-slate-950/70 border border-slate-850 p-4 rounded-2xl flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-black text-white uppercase tracking-wider">2. Importar Lições por Texto</h4>
-                  <span className="text-[10px] text-indigo-400 font-mono font-bold">Destino: {selectedBrochuraId}</span>
-                </div>
-
-                {/* Drag and drop support */}
-                <div 
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragging(true);
-                  }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={async (e) => {
-                    e.preventDefault();
-                    setIsDragging(false);
-                    const file = e.dataTransfer.files[0];
-                    if (file && file.type === 'text/plain') {
-                      const text = await file.text();
-                      setImportText(text);
-                    } else {
-                      alert('Apenas arquivos de texto (.txt) são aceitos no arrastar e soltar.');
-                    }
-                  }}
-                  className={`border-2 border-dashed rounded-xl p-3 text-center transition-all ${
-                    isDragging ? 'border-emerald-500 bg-emerald-950/10' : 'border-slate-800 bg-slate-900/30'
-                  }`}
-                >
-                  <label className="cursor-pointer block">
-                    <span className="text-[11px] font-bold text-slate-300 block">Colar texto abaixo ou arrastar arquivo .txt</span>
-                    <input 
-                      type="file" 
-                      accept=".txt" 
-                      className="hidden" 
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const text = await file.text();
-                          setImportText(text);
-                        }
-                      }}
-                    />
-                    <span className="text-[10px] text-indigo-400 font-medium hover:underline block mt-1">Clique para buscar no dispositivo</span>
-                  </label>
-                </div>
-
-                <textarea
-                  value={importText}
-                  onChange={(e) => setImportText(e.target.value)}
-                  placeholder="Cole o texto aqui. Use estruturas de tipo:&#10;Lição 1 — Comece bem&#10;Este é um parágrafo normal.&#10;• Este é um lição bullet.&#10;Dica: Conselhos ou dicas de ação.&#10;Na pregação: Instruções do campo."
-                  className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[120px] font-mono leading-normal"
-                />
-              </div>
-
-              <div className="space-y-2 pt-2">
-                {successMessage && (
-                  <p className="text-xs text-emerald-400 font-black text-center">{successMessage}</p>
-                )}
-                {errorMessage && (
-                  <p className="text-xs text-red-400 font-black text-center">{errorMessage}</p>
-                )}
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (!importText.trim()) return alert("Insira algum texto para importar!");
-                    setSuccessMessage('');
-                    setErrorMessage('');
-                    const res = await licoesService.importLicoesFromText(selectedBrochuraId, importText);
-                    if (res.success) {
-                      setSuccessMessage(`${res.count} Lições processadas e salvas com sucesso em: ${selectedBrochuraId}!`);
-                      setImportText('');
-                      // Reload current lessons
-                      const freshLicoes = await licoesService.fetchLicoesByBrochura(selectedBrochuraId);
-                      setLicoesList(freshLicoes);
-                    } else {
-                      setErrorMessage(res.error || 'Erro desconhecido');
-                    }
-                  }}
-                  className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-600 active:scale-[0.98] text-white rounded-xl text-xs font-bold transition-all cursor-pointer text-center tracking-wide"
-                >
-                  Processar e Importar Texto Integralmente
-                </button>
-              </div>
-            </div>
-          </div>
         </section>
 
       </main>

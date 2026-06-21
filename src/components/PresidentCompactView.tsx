@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DoorOpen, Wifi, WifiOff, LayoutGrid, Minimize2, Maximize2, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, BookOpen, Lightbulb, Mic } from 'lucide-react';
+import { DoorOpen, Wifi, WifiOff, LayoutGrid, Minimize2, Maximize2, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, BookOpen, Lightbulb, Mic, Heart } from 'lucide-react';
 import { TimerState, ScheduleItem } from '../types';
 import { motion } from 'motion/react';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
@@ -251,19 +251,44 @@ export default function PresidentCompactView({
               );
             }
 
+            const isAmePessoas = activeItem.brochuraId === 'ame_pessoas';
+            const theme = isAmePessoas
+              ? {
+                  border: "border-rose-500/40",
+                  headerDivider: "border-rose-950",
+                  iconBg: "bg-rose-500",
+                  textBadge: "text-rose-450",
+                  nodeTitle: "text-rose-400 border-rose-650",
+                  bullet: "text-rose-500",
+                  dicaBg: "bg-rose-950/15 border border-rose-900/10",
+                  dicaText: "text-rose-100",
+                  icon: <Heart className="w-5 h-5 text-white animate-pulse" />
+                }
+              : {
+                  border: "border-indigo-500/40",
+                  headerDivider: "border-indigo-950",
+                  iconBg: "bg-indigo-600",
+                  textBadge: "text-indigo-400",
+                  nodeTitle: "text-indigo-400 border-indigo-650",
+                  bullet: "text-indigo-500",
+                  dicaBg: "bg-indigo-950/15 border border-indigo-900/30",
+                  dicaText: "text-indigo-100",
+                  icon: <BookOpen className="w-5 h-5 text-white" />
+                };
+
             return (
               <motion.div
                 initial={{ opacity: 0, scale: 0.96 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="w-full bg-slate-900 border-2 border-indigo-500/40 rounded-3xl p-6 shadow-2xl space-y-4"
+                className={`w-full bg-slate-900 border-2 ${theme.border} rounded-3xl p-6 shadow-2xl space-y-4`}
               >
                 {/* Header */}
-                <div className="flex items-center gap-3 border-b border-indigo-950 pb-3">
-                  <div className="bg-indigo-600 rounded-xl p-2 text-white">
-                    <BookOpen className="w-5 h-5" />
+                <div className={`flex items-center gap-3 border-b ${theme.headerDivider} pb-3`}>
+                  <div className={`${theme.iconBg} rounded-xl p-2 text-white`}>
+                    {theme.icon}
                   </div>
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 block">
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${theme.textBadge} block`}>
                       {currentBrochuraNome}
                     </span>
                     <h3 className="text-sm sm:text-base font-black text-white leading-tight">
@@ -280,7 +305,7 @@ export default function PresidentCompactView({
                         return (
                           <h4 
                             key={idx} 
-                            className="text-xs sm:text-sm font-black text-indigo-400 uppercase tracking-wide mt-4 border-l-2 border-indigo-650 pl-2.5"
+                            className={`text-xs sm:text-sm font-black ${theme.nodeTitle} uppercase tracking-wide mt-4 border-l-2 pl-2.5`}
                           >
                             {node.texto}
                           </h4>
@@ -297,7 +322,7 @@ export default function PresidentCompactView({
                       case 'bullet':
                         return (
                           <div key={idx} className="flex gap-2.5 items-start pl-1 sm:pl-2 text-left">
-                            <span className="text-indigo-500 font-bold select-none">•</span>
+                            <span className={`${theme.bullet} font-bold select-none`}>•</span>
                             <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed flex-1 break-words">
                               {node.texto}
                             </p>
@@ -307,12 +332,12 @@ export default function PresidentCompactView({
                         return (
                           <div 
                             key={idx} 
-                            className="bg-indigo-950/15 border border-indigo-900/30 p-4 rounded-2xl flex items-start gap-3 mt-2 text-left"
+                            className={`${theme.dicaBg} p-4 rounded-2xl flex items-start gap-3 mt-2 text-left`}
                           >
                             <Lightbulb className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400 shrink-0 mt-0.5" />
                             <div className="space-y-0.5">
                               <span className="text-[9px] font-black text-amber-450 uppercase tracking-widest block">Dica</span>
-                              <p className="text-xs font-semibold text-indigo-100 leading-relaxed break-words whitespace-pre-wrap">
+                              <p className={`text-xs font-semibold ${theme.dicaText} leading-relaxed break-words whitespace-pre-wrap`}>
                                 {node.texto}
                               </p>
                             </div>

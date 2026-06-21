@@ -2,7 +2,7 @@ import { collection, getDocs, addDoc, query, where, writeBatch, doc, setDoc } fr
 import { db } from '../lib/firebase';
 import { sessionStore } from './sessionStore';
 import { Brochura, Licao, LicaoConteudoNode } from '../types';
-import { LICOES_MELHORE_DATA } from '../data/licoes';
+import { LICOES_MELHORE_DATA, LICOES_AME_PESSOAS_DATA } from '../data/licoes';
 
 let cachedBrochuras: Brochura[] | null = null;
 let cachedLicoesByBrochura: Record<string, Licao[]> = {};
@@ -80,6 +80,11 @@ export const licoesService = {
         cachedLicoesByBrochura[brochuraId] = list;
         return list;
       }
+      if (brochuraId === 'ame_pessoas') {
+        const list = LICOES_AME_PESSOAS_DATA as Licao[];
+        cachedLicoesByBrochura[brochuraId] = list;
+        return list;
+      }
       return [];
     }
 
@@ -93,6 +98,16 @@ export const licoesService = {
           // Auto-seed melhore in "licoes"
           console.log('Seeding licoes schema for Melhore brochure...');
           const list = this._getSeedMelhoreLicoes();
+          for (const lic of list) {
+            await addDoc(collRef, lic);
+          }
+          cachedLicoesByBrochura[brochuraId] = list.sort((a, b) => a.numero - b.numero);
+          return cachedLicoesByBrochura[brochuraId];
+        }
+        if (brochuraId === 'ame_pessoas') {
+          // Auto-seed ame_pessoas
+          console.log('Seeding licoes schema for Ame as Pessoas brochure...');
+          const list = LICOES_AME_PESSOAS_DATA as Licao[];
           for (const lic of list) {
             await addDoc(collRef, lic);
           }
@@ -321,6 +336,9 @@ export const licoesService = {
     if (brochuraId === 'melhore') {
       const seeds = this._getSeedMelhoreLicoes();
       return seeds.find(l => l.numero === number);
+    }
+    if (brochuraId === 'ame_pessoas') {
+      return (LICOES_AME_PESSOAS_DATA as Licao[]).find(l => l.numero === number);
     }
     return undefined;
   },

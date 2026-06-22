@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { DoorOpen, Wifi, WifiOff, LayoutGrid, Minimize2, Maximize2, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, BookOpen, Lightbulb, Mic, Heart } from 'lucide-react';
+import { DoorOpen, Wifi, WifiOff, LayoutGrid, Minimize2, Maximize2, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, Play, Pause, BookOpen, Lightbulb, Speech, Heart } from 'lucide-react';
 import { TimerState, ScheduleItem } from '../types';
 import { motion } from 'motion/react';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
 import { licoesService } from '../services/licoesService';
+import { LICOES_MELHORE_DATA } from '../data/licoes';
 
 interface PresidentCompactViewProps {
   timerState: TimerState;
@@ -299,69 +300,142 @@ export default function PresidentCompactView({
 
                 {/* Content Nodes */}
                 <div className="space-y-3 pt-1">
-                  {currentLicao.conteudo.map((node, idx) => {
-                    switch (node.tipo) {
-                      case 'titulo':
-                        return (
-                          <h4 
-                            key={idx} 
-                            className={`text-xs sm:text-sm font-black ${theme.nodeTitle} uppercase tracking-wide mt-4 border-l-2 pl-2.5`}
-                          >
-                            {node.texto}
-                          </h4>
-                        );
-                      case 'paragrafo':
-                        return (
-                          <p 
-                            key={idx} 
-                            className="text-slate-350 text-xs sm:text-sm font-normal leading-relaxed break-words whitespace-pre-wrap text-left"
-                          >
-                            {node.texto}
-                          </p>
-                        );
-                      case 'bullet':
-                        return (
-                          <div key={idx} className="flex gap-2.5 items-start pl-1 sm:pl-2 text-left">
-                            <span className={`${theme.bullet} font-bold select-none`}>•</span>
-                            <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed flex-1 break-words">
+                  {(() => {
+                    const isMelhore = activeItem.brochuraId === 'melhore';
+                    const melhoreData = isMelhore ? LICOES_MELHORE_DATA.find(lm => lm.numero === activeItem.licaoNumero) : null;
+
+                    if (isMelhore && melhoreData) {
+                      return (
+                        <div className="space-y-4 font-sans text-left">
+                          {/* 1. Titulo da licao e objetivo (Comece bem (negrito): objetivo) */}
+                          <div className="text-xs sm:text-sm text-slate-350 leading-relaxed font-normal">
+                            <strong className="text-white font-extrabold text-[#ffffff]">{melhoreData.titulo}: </strong> 
+                            {melhoreData.objetivo}
+                          </div>
+
+                          {/* 2. Seções Como Fazer / Na pregação */}
+                          <div className="space-y-4">
+                            {melhoreData.comoFazer.map((cf, cfIdx) => {
+                              const isNaPregacao = cf.titulo.toLowerCase().trim().replace(/ç/g, 'c').replace(/ã/g, 'a') === 'na pregacao';
+
+                              if (isNaPregacao) {
+                                return (
+                                  <div key={cfIdx} className="bg-purple-950/20 border border-purple-900/30 p-3.5 rounded-2xl flex items-start gap-2.5 mt-3 text-left transition-all">
+                                    <Speech className="w-4.5 h-4.5 text-purple-400 shrink-0 mt-0.5 animate-pulse" />
+                                    <div className="space-y-0.5 leading-relaxed text-xs sm:text-sm text-slate-300">
+                                      <strong className="text-purple-400 font-extrabold">Na pregação: </strong>
+                                      {cf.descricao}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // Segment description and "Dica"
+                              const { descricaoPrincipal, dica } = (() => {
+                                const parts = cf.descricao.split(/(?:Dica:)/i);
+                                if (parts.length > 1) {
+                                  return {
+                                    descricaoPrincipal: parts[0].trim(),
+                                    dica: parts[1].trim()
+                                  };
+                                }
+                                return { descricaoPrincipal: cf.descricao.trim() };
+                              })();
+
+                              return (
+                                <div key={cfIdx} className="space-y-2">
+                                  {/* Bullet point */}
+                                  <div className="flex gap-2.5 items-start pl-1 sm:pl-2">
+                                    <span className="text-indigo-500 font-black select-none text-base">•</span>
+                                    <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed flex-1 break-words">
+                                      <strong className="text-white font-extrabold text-[#ffffff]">{cf.titulo}: </strong>
+                                      {descricaoPrincipal}
+                                    </p>
+                                  </div>
+
+                                  {/* Embedded tip (Dica) if present */}
+                                  {dica && (
+                                    <div className="bg-amber-950/10 border border-amber-900/20 p-3 px-4 rounded-xl flex items-start gap-2.5 ml-6 sm:ml-8 transition-all">
+                                      <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                      <div className="space-y-0.5 font-sans leading-relaxed text-xs text-amber-100">
+                                        <strong className="text-amber-400 font-extrabold">Dica: </strong>
+                                        {dica}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Standard dynamic fullback node mapper for fallback/dynamic/other brochures info
+                    return currentLicao.conteudo.map((node, idx) => {
+                      switch (node.tipo) {
+                        case 'titulo':
+                          return (
+                            <h4 
+                              key={idx} 
+                              className={`text-xs sm:text-sm font-black ${theme.nodeTitle} uppercase tracking-wide mt-4 border-l-2 pl-2.5`}
+                            >
+                              {node.texto}
+                            </h4>
+                          );
+                        case 'paragrafo':
+                          return (
+                            <p 
+                              key={idx} 
+                              className="text-slate-350 text-xs sm:text-sm font-normal leading-relaxed break-words whitespace-pre-wrap text-left"
+                            >
                               {node.texto}
                             </p>
-                          </div>
-                        );
-                      case 'dica':
-                        return (
-                          <div 
-                            key={idx} 
-                            className={`${theme.dicaBg} p-4 rounded-2xl flex items-start gap-3 mt-2 text-left`}
-                          >
-                            <Lightbulb className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400 shrink-0 mt-0.5" />
-                            <div className="space-y-0.5">
-                              <span className="text-[9px] font-black text-amber-450 uppercase tracking-widest block">Dica</span>
-                              <p className={`text-xs font-semibold ${theme.dicaText} leading-relaxed break-words whitespace-pre-wrap`}>
+                          );
+                        case 'bullet':
+                          return (
+                            <div key={idx} className="flex gap-2.5 items-start pl-1 sm:pl-2 text-left">
+                              <span className={`${theme.bullet} font-bold select-none`}>•</span>
+                              <p className="text-slate-350 text-xs sm:text-sm font-medium leading-relaxed flex-1 break-words">
                                 {node.texto}
                               </p>
                             </div>
-                          </div>
-                        );
-                      case 'pregacao':
-                        return (
-                          <div 
-                            key={idx} 
-                            className="bg-purple-950/20 border border-purple-900/30 p-4 rounded-2xl flex items-start gap-3 mt-2 text-left"
-                          >
-                            <Mic className="w-4 sm:w-5 h-4 sm:h-5 text-purple-400 shrink-0 mt-0.5" />
-                            <div className="space-y-0.5">
-                              <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest block">Na Pregação</span>
-                              <p className="text-xs font-semibold text-purple-100 leading-relaxed break-words whitespace-pre-wrap">
-                                {node.texto}
-                              </p>
+                          );
+                        case 'dica':
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`${theme.dicaBg} p-4 rounded-2xl flex items-start gap-3 mt-2 text-left`}
+                            >
+                              <Lightbulb className="w-4 sm:w-5 h-4 sm:h-5 text-amber-400 shrink-0 mt-0.5" />
+                              <div className="space-y-0.5">
+                                <span className="text-[9px] font-black text-amber-450 uppercase tracking-widest block">Dica</span>
+                                <p className={`text-xs font-semibold ${theme.dicaText} leading-relaxed break-words whitespace-pre-wrap`}>
+                                  {node.texto}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
+                          );
+                        case 'pregacao':
+                          return (
+                            <div 
+                              key={idx} 
+                              className="bg-purple-950/20 border border-purple-900/30 p-4 rounded-2xl flex items-start gap-3 mt-2 text-left"
+                            >
+                              <Speech className="w-4 sm:w-5 h-4 sm:h-5 text-purple-400 shrink-0 mt-0.5" />
+                              <div className="space-y-0.5">
+                                <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest block">Na Pregação</span>
+                                <p className="text-xs font-semibold text-purple-100 leading-relaxed break-words whitespace-pre-wrap">
+                                  {node.texto}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        default:
+                          return null;
+                      }
+                    });
+                  })()}
                 </div>
               </motion.div>
             );

@@ -56,6 +56,19 @@ export const licoesService = {
         } as Brochura;
       });
 
+      // Ensure both default brochures are present. If any is missing, write if possible and append to list
+      for (const defB of defaultBrochuras) {
+        if (!list.some(b => b.id === defB.id)) {
+          try {
+            const docRef = doc(db, COLL_BROCHURAS, defB.id);
+            await setDoc(docRef, defB);
+          } catch (writeErr) {
+            console.warn(`Failed to seed missing default brochure ${defB.id} to Firestore`, writeErr);
+          }
+          list.push(defB);
+        }
+      }
+
       cachedBrochuras = list;
       return cachedBrochuras;
     } catch (e) {
@@ -99,7 +112,11 @@ export const licoesService = {
           console.log('Seeding licoes schema for Melhore brochure...');
           const list = this._getSeedMelhoreLicoes();
           for (const lic of list) {
-            await addDoc(collRef, lic);
+            try {
+              await addDoc(collRef, lic);
+            } catch (writeErr) {
+              console.warn(`Failed to seed melhore lesson ${lic.numero} to Firestore`, writeErr);
+            }
           }
           cachedLicoesByBrochura[brochuraId] = list.sort((a, b) => a.numero - b.numero);
           return cachedLicoesByBrochura[brochuraId];
@@ -109,7 +126,11 @@ export const licoesService = {
           console.log('Seeding licoes schema for Ame as Pessoas brochure...');
           const list = LICOES_AME_PESSOAS_DATA as Licao[];
           for (const lic of list) {
-            await addDoc(collRef, lic);
+            try {
+              await addDoc(collRef, lic);
+            } catch (writeErr) {
+              console.warn(`Failed to seed ame_pessoas lesson ${lic.numero} to Firestore`, writeErr);
+            }
           }
           cachedLicoesByBrochura[brochuraId] = list.sort((a, b) => a.numero - b.numero);
           return cachedLicoesByBrochura[brochuraId];
@@ -133,9 +154,12 @@ export const licoesService = {
       cachedLicoesByBrochura[brochuraId] = sortedList;
       return sortedList;
     } catch (e) {
-      console.warn(`Failed to fetch licoes for ${brochuraId}, loading defaults if melhore:`, e);
+      console.warn(`Failed to fetch licoes for ${brochuraId}, loading defaults if melhore/ame_pessoas:`, e);
       if (brochuraId === 'melhore') {
         return this._getSeedMelhoreLicoes();
+      }
+      if (brochuraId === 'ame_pessoas') {
+        return LICOES_AME_PESSOAS_DATA as Licao[];
       }
       return [];
     }

@@ -36,13 +36,11 @@ export const reunioesService = {
       const q = query(collRef, orderBy('data', 'desc'));
       const qSnap = await getDocs(q);
       
-      const reunioes: FirestoreReuniao[] = [];
-      
-      for (const d of qSnap.docs) {
+      const reunioes = await Promise.all(qSnap.docs.map(async (d) => {
         const reuniaoData = d.data() as Omit<FirestoreReuniao, 'id'>;
         const reuniaoId = d.id;
         
-        // Fetch subcollection partes
+        // Fetch subcollection partes in parallel
         const partesRef = collection(db, `${COLL_PATH}/${reuniaoId}/partes`);
         const partesSnap = await getDocs(partesRef);
         const partes: FirestoreParte[] = partesSnap.docs.map(pDoc => ({
@@ -50,12 +48,12 @@ export const reunioesService = {
           ...pDoc.data()
         })) as FirestoreParte[];
         
-        reunioes.push({
+        return {
           id: reuniaoId,
           ...reuniaoData,
           partes
-        });
-      }
+        };
+      }));
       
       return reunioes;
     } catch (error) {

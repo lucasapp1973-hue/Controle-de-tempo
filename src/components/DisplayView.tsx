@@ -92,6 +92,30 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
     }
   }
 
+  // Sync page background and mobile system status bar (theme-color meta) with active display background color
+  useEffect(() => {
+    // 1. Sync body background
+    const prevBodyBg = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = bgColorStyle;
+
+    // 2. Sync meta theme-color
+    let themeMeta = document.querySelector('meta[name="theme-color"]');
+    if (!themeMeta) {
+      themeMeta = document.createElement('meta');
+      themeMeta.setAttribute('name', 'theme-color');
+      document.head.appendChild(themeMeta);
+    }
+    const prevThemeColor = themeMeta.getAttribute('content');
+    themeMeta.setAttribute('content', bgColorStyle);
+
+    return () => {
+      document.body.style.backgroundColor = prevBodyBg;
+      if (themeMeta && prevThemeColor) {
+        themeMeta.setAttribute('content', prevThemeColor);
+      }
+    };
+  }, [bgColorStyle]);
+
   return (
     <div
       id="display-container"
@@ -114,11 +138,9 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
 
       {/* Sleek, elegant progress bar at the bottom */}
       {initialDuration > 0 && (() => {
-        const total = initialDuration > 0 ? initialDuration : 0;
-        const elapsed = mode === 'regressive' 
-          ? Math.max(0, initialDuration - currentTime)
-          : currentTime;
-        const progressPercent = total > 0 ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 0;
+        const progressPercent = initialDuration > 0 
+          ? Math.min(100, Math.max(0, (currentTime / initialDuration) * 100))
+          : 0;
         
         const isTimeExceeded = mode === 'regressive' 
           ? currentTime <= 0 

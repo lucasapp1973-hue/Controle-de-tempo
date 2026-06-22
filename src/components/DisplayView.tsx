@@ -98,19 +98,45 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
       ref={displayContainerRef}
       style={{ backgroundColor: bgColorStyle }}
       onClick={toggleFullscreen}
-      className="relative w-full h-screen flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none cursor-pointer"
+      className="fixed inset-0 w-full h-full flex flex-col items-center justify-center transition-colors duration-1000 overflow-hidden text-white select-none cursor-pointer"
     >
       {/* Subtle overlay for physical display look */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/10 pointer-events-none" />
 
       {/* Display is STRICTLY the elapsed time, huge, centered, no text layout */}
-      <div className="flex items-center justify-center text-center w-full select-none z-10">
+      <div className="flex items-center justify-center text-center w-full select-none z-10 px-4">
         <div 
           className="font-mono text-[28vw] leading-none font-bold tracking-tighter drop-shadow-[0_12px_32px_rgba(0,0,0,0.35)]"
         >
           {formatTime(currentTime)}
         </div>
       </div>
+
+      {/* Sleek, elegant progress bar at the bottom */}
+      {initialDuration > 0 && (() => {
+        const total = initialDuration > 0 ? initialDuration : 0;
+        const elapsed = mode === 'regressive' 
+          ? Math.max(0, initialDuration - currentTime)
+          : currentTime;
+        const progressPercent = total > 0 ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 0;
+        
+        const isTimeExceeded = mode === 'regressive' 
+          ? currentTime <= 0 
+          : currentTime >= initialDuration;
+
+        return (
+          <div className="absolute bottom-0 left-0 right-0 h-3 bg-black/40 backdrop-blur-md border-t border-white/5 z-20 overflow-hidden flex items-center">
+            <div 
+              style={{ width: `${progressPercent}%` }}
+              className={`h-full opacity-90 shadow-[0_0_10px_rgba(255,255,255,0.73)] rounded-r-full transition-all duration-1000 ease-linear ${
+                isTimeExceeded
+                  ? 'bg-red-500 animate-pulse shadow-[0_0_12px_rgba(239,68,68,0.85)]'
+                  : 'bg-white'
+              }`}
+            />
+          </div>
+        );
+      })()}
     </div>
   );
 }

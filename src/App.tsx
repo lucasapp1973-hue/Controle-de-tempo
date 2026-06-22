@@ -311,21 +311,18 @@ export default function App() {
   if (appMode === 'display') {
     return (
       <motion.div
-        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-black z-30"
+        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden bg-black z-30"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.5 }}
       >
-        {renderDemoBanner()}
-        <div className="flex-1 relative overflow-hidden">
-          <DisplayView
-            timerState={timerState}
-            isConnected={isConnected}
-            onBack={handleBackToPortal}
-            systemConfig={systemConfig}
-          />
-        </div>
+        <DisplayView
+          timerState={timerState}
+          isConnected={isConnected}
+          onBack={handleBackToPortal}
+          systemConfig={systemConfig}
+        />
       </motion.div>
     );
   }
@@ -335,10 +332,10 @@ export default function App() {
     return (
       <motion.div
         className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -15 }}
-        transition={{ duration: 0.3 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
       >
         {renderDemoBanner()}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">

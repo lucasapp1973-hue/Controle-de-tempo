@@ -293,13 +293,11 @@ export default function ControlView({
   const [showEditPartTypeDropdown, setShowEditPartTypeDropdown] = useState(false);
   const [showEditMinutesDropdown, setShowEditMinutesDropdown] = useState(false);
 
-  // Initial load of brochures and default lessons
+  // Initial load of brochures (lessons are loaded by selectedBrochuraId effect)
   useEffect(() => {
     const initData = async () => {
       const bList = await licoesService.fetchBrochuras();
       setBrochuras(bList);
-      const lList = await licoesService.fetchLicoesByBrochura(selectedBrochuraId);
-      setLicoesList(lList);
     };
     initData();
   }, []);
@@ -573,7 +571,7 @@ export default function ControlView({
 
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-between font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between font-sans">
       {/* Standardized Header */}
       <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 px-4 pt-8 pb-4 sm:pt-10 sticky top-0 z-35 text-slate-100">
         <div className="max-w-4xl mx-auto flex items-center justify-between relative min-h-[46px]">

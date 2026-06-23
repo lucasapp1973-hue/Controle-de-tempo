@@ -1,6 +1,6 @@
 {
-  "name": "Sincronizador de Tempo",
-  "description": "Sistema de cronômetro sincronizado em tempo real entre dispositivos de exibição e controle remotos via Socket.IO.",
+  "name": "Sinc",
+  "description": "Sistema de cronometragem sincronizada em tempo real para discursos e reuniões com latência zero.",
   "requestFramePermissions": ["picture-in-picture"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

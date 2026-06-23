@@ -427,16 +427,24 @@ export default function App() {
       <div className="w-full max-w-md mx-auto px-6 py-12 flex-1 flex flex-col justify-center space-y-10 relative z-10">
         
         {/* Header Branding */}
-        <header className="text-center space-y-4 flex flex-col items-center">
-          <motion.h1
+        <header className="text-center flex flex-col items-center">
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.15, duration: 0.5 }}
-            className="font-extrabold tracking-tight text-white flex flex-col items-center gap-1"
+            className="flex flex-col items-center"
           >
-            <span className="text-5xl sm:text-6xl text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-emerald-400 inline-block font-sans font-medium">Sincronizador</span>
-            <span className="text-[22px] sm:text-[26px] inline-block text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.85)] tracking-widest uppercase mt-1 opacity-95">de Tempo</span>
-          </motion.h1>
+            {/* The giant premium logo */}
+            <span className="text-6xl sm:text-7xl font-black tracking-[0.25em] pl-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-indigo-200 to-emerald-400 inline-block font-sans">SINC</span>
+            
+            {/* Elegant thin separation line */}
+            <div className="h-px w-24 bg-gradient-to-r from-transparent via-slate-700 to-transparent my-4" />
+            
+            {/* Elegant and creative description of the app's objective without "de Tempo" */}
+            <p className="text-sm text-slate-400 max-w-sm text-center leading-relaxed font-light tracking-wide px-2">
+              Controle, monitore e sincronize o tempo de discursos e reuniões em múltiplos dispositivos em tempo real com latência zero.
+            </p>
+          </motion.div>
         </header>
 
         {/* Portal Options Section (Immersive Vertical Bento with Backlight & Expand Animations) */}
@@ -632,7 +640,7 @@ export default function App() {
 
       {/* Footer copyright */}
       <footer className="py-6 border-t border-slate-900/50 bg-slate-950/80 text-center text-xs text-slate-500 z-10 select-none">
-        <p>Sincronizador de tempo de latência zero</p>
+        <p>Sinc • Cronometragem sincronizada em tempo real</p>
       </footer>
 
     </div>

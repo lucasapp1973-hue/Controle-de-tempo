@@ -435,7 +435,7 @@ export default function App() {
             className="flex flex-col items-center"
           >
             {/* The giant premium logo */}
-            <span className="text-6xl sm:text-7xl font-black tracking-[0.25em] pl-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-indigo-200 to-emerald-400 inline-block font-sans">SINC</span>
+            <span className="text-6xl sm:text-7xl font-black tracking-[0.25em] pl-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-indigo-200 to-emerald-400 inline-block font-sans">SYNC</span>
             
             {/* Elegant thin separation line */}
             <div className="h-px w-24 bg-gradient-to-r from-transparent via-slate-700 to-transparent my-4" />
@@ -640,7 +640,7 @@ export default function App() {
 
       {/* Footer copyright */}
       <footer className="py-6 border-t border-slate-900/50 bg-slate-950/80 text-center text-xs text-slate-500 z-10 select-none">
-        <p>Sinc • Cronometragem sincronizada em tempo real</p>
+        <p>Sync • Cronometragem sincronizada em tempo real</p>
       </footer>
 
     </div>

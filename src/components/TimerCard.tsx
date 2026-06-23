@@ -204,7 +204,7 @@ export default function TimerCard({
             </button>
           </div>
 
-          {/* SOLID DYNAMIC MODE SELECTOR (Instant Sinc) */}
+          {/* SOLID DYNAMIC MODE SELECTOR (Instant Sync) */}
           <div className="mt-5 border-t border-slate-850 pt-4">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Configurar Modo Sincronizado</span>
             <div className="grid grid-cols-2 gap-2 bg-slate-950 p-1 rounded-xl border border-slate-850">

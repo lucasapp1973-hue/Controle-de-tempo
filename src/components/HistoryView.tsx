@@ -316,7 +316,7 @@ export default function HistoryView({
       reportText += `   📊 Status: ${statusIcon} (${diff === 0 ? 'Pontual' : `${sign}${formatDifferenceValue(diff)}`})\n\n`;
     });
 
-    reportText += `━━━━━━━━━━━━━━━━━━━━━━━━\nGerado automaticamente via Sinc do Presidente.`;
+    reportText += `━━━━━━━━━━━━━━━━━━━━━━━━\nGerado automaticamente via Sync do Presidente.`;
     
     navigator.clipboard.writeText(reportText).then(() => {
       setCopiedReport(true);
@@ -941,7 +941,7 @@ export default function HistoryView({
                               <br />
                               <span>━━━━━━━━━━━━━━━━━━━━━━━━</span>
                               <br />
-                              <span className="text-slate-450 italic">Gerado automaticamente via Sinc do Presidente.</span>
+                              <span className="text-slate-450 italic">Gerado automaticamente via Sync do Presidente.</span>
                             </>
                           )}
                         </div>

@@ -434,8 +434,34 @@ export default function App() {
             transition={{ delay: 0.15, duration: 0.5 }}
             className="flex flex-col items-center"
           >
-            {/* The giant premium logo */}
-            <span className="text-6xl sm:text-7xl font-black tracking-[0.25em] pl-[0.25em] text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-indigo-200 to-emerald-400 inline-block font-sans">SYNC</span>
+            {/* The giant premium logo with stopwatch/hourglass "Y" hybrid */}
+            <h1 className="text-6xl sm:text-7xl font-sans font-black select-none flex items-center justify-center">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">S</span>
+              <div className="relative inline-flex items-center justify-center w-[1.1em] h-[1.1em] text-emerald-400 select-none mx-[-0.1em]">
+                <svg className="w-full h-full drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Dotted stopwatch outer bezel */}
+                  <circle cx="50" cy="55" r="28" stroke="currentColor" strokeWidth="2.5" strokeDasharray="3 5" className="opacity-40 animate-[spin_60s_linear_infinite]" />
+                  
+                  {/* Top push button of stopwatch */}
+                  <rect x="42" y="8" width="16" height="5" rx="1.5" fill="currentColor" />
+                  <path d="M50 13V20" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                  
+                  {/* Side button (lap timer) */}
+                  <path d="M72 24l4.5 4.5" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                  
+                  {/* Hourglass and Y hybrid structure */}
+                  <line x1="24" y1="26" x2="76" y2="26" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
+                  <path d="M24 26L50 55L76 26" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="50" y1="55" x2="50" y2="84" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
+                  <line x1="32" y1="84" x2="68" y2="84" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
+                  
+                  {/* Center jewel pointing hand */}
+                  <line x1="50" y1="55" x2="64" y2="44" stroke="#818cf8" strokeWidth="3" strokeLinecap="round" />
+                  <circle cx="50" cy="55" r="5" fill="#818cf8" stroke="currentColor" strokeWidth="1.5" />
+                </svg>
+              </div>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-indigo-400">NC</span>
+            </h1>
             
             {/* Elegant thin separation line */}
             <div className="h-px w-24 bg-gradient-to-r from-transparent via-slate-700 to-transparent my-4" />

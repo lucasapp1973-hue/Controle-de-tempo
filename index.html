@@ -101,15 +101,58 @@
 
       <!-- Branding Text -->
       <h1 style="
-        font-size: 40px;
+        font-size: 56px;
         font-weight: 900;
-        letter-spacing: 0.2em;
         margin: 0;
-        padding-left: 0.2em;
-        background: linear-gradient(135deg, #818cf8 0%, #10b981 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      ">SYNC</h1>
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        user-select: none;
+        font-family: system-ui, -apple-system, sans-serif;
+      ">
+        <span style="
+          background: linear-gradient(135deg, #818cf8 0%, #c7d2fe 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        ">S</span>
+        <div style="
+          position: relative;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 64px;
+          height: 64px;
+          color: #10b981;
+          margin: 0 -4px;
+        ">
+          <svg style="width: 100%; height: 100%; filter: drop-shadow(0 0 12px rgba(16,185,129,0.45));" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- Dotted stopwatch outer bezel -->
+            <circle cx="50" cy="55" r="28" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 5" style="opacity: 0.45;" />
+            
+            <!-- Top push button of stopwatch -->
+            <rect x="42" y="8" width="16" height="5" rx="1.5" fill="currentColor" />
+            <path d="M50 13V20" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            
+            <!-- Side button (lap timer) -->
+            <path d="M72 24l4.5 4.5" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            
+            <!-- Hourglass and Y hybrid structure -->
+            <line x1="24" y1="26" x2="76" y2="26" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" />
+            <path d="M24 26L50 55L76 26" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round" />
+            <line x1="50" y1="55" x2="50" y2="84" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" />
+            <line x1="32" y1="84" x2="68" y2="84" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" />
+            
+            <!-- Center jewel pointing hand -->
+            <line x1="50" y1="55" x2="64" y2="44" stroke="#818cf8" stroke-width="3" stroke-linecap="round" />
+            <circle cx="50" cy="55" r="5" fill="#818cf8" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        </div>
+        <span style="
+          background: linear-gradient(135deg, #c7d2fe 0%, #818cf8 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        ">NC</span>
+      </h1>
       
       <!-- Tiny separator -->
       <div style="

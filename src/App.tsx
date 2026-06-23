@@ -439,8 +439,8 @@ export default function App() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">S</span>
               <div className="relative inline-flex items-center justify-center w-[1.1em] h-[1.1em] text-emerald-400 select-none mx-[-0.1em]">
                 <svg className="w-full h-full drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* Dotted stopwatch outer bezel */}
-                  <circle cx="50" cy="55" r="28" stroke="currentColor" strokeWidth="2.5" strokeDasharray="3 5" className="opacity-40 animate-[spin_60s_linear_infinite]" />
+                  {/* Dotted stopwatch outer bezel (now static and concentric) */}
+                  <circle cx="50" cy="55" r="28" stroke="currentColor" strokeWidth="2.5" strokeDasharray="3 5" className="opacity-40" />
                   
                   {/* Top push button of stopwatch */}
                   <rect x="42" y="8" width="16" height="5" rx="1.5" fill="currentColor" />
@@ -455,8 +455,10 @@ export default function App() {
                   <line x1="50" y1="55" x2="50" y2="84" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
                   <line x1="32" y1="84" x2="68" y2="84" stroke="currentColor" strokeWidth="6.5" strokeLinecap="round" />
                   
-                  {/* Center jewel pointing hand */}
-                  <line x1="50" y1="55" x2="64" y2="44" stroke="#818cf8" strokeWidth="3" strokeLinecap="round" />
+                  {/* Center jewel pointing hand (longer and continuously rotating) */}
+                  <g style={{ transformOrigin: '50px 55px' }} className="animate-[spin_4s_linear_infinite]">
+                    <line x1="50" y1="55" x2="50" y2="33" stroke="#818cf8" strokeWidth="3" strokeLinecap="round" />
+                  </g>
                   <circle cx="50" cy="55" r="5" fill="#818cf8" stroke="currentColor" strokeWidth="1.5" />
                 </svg>
               </div>

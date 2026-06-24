@@ -7,6 +7,7 @@ import {
 import { TimerState, CompletedMeeting, ScheduleItem } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
+import DatabaseStatusIndicator from './DatabaseStatusIndicator';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, Legend 
@@ -343,15 +344,19 @@ export default function HistoryView({
             </div>
           </div>
 
-          <div
-            className={`z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
-              isConnected
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
-            }`}
-          >
-            {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
-            <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
+          {/* Wifi & Database status on right */}
+          <div className="z-10 flex items-center gap-2">
+            <DatabaseStatusIndicator />
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
+                isConnected
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
+              }`}
+            >
+              {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
+              <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
+            </div>
           </div>
         </div>
       </header>

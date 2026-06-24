@@ -2,6 +2,7 @@ import { collection, doc, addDoc, setDoc, deleteDoc, getDocs, doc as firestoreDo
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { sessionStore } from './sessionStore';
 import { demoService } from './demoService';
+import { configuracoesService } from './configuracoesService';
 
 export interface FirestoreParte {
   id?: string;
@@ -26,9 +27,13 @@ export interface FirestoreReuniao {
 
 const COLL_PATH = 'reunioes';
 
+const isDemoOrNoSave = () => {
+  return sessionStore.isDemo() || configuracoesService.getCurrentConfig().salvarReuniao === false;
+};
+
 export const reunioesService = {
   async fetchReunioes(): Promise<FirestoreReuniao[]> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       return demoService.getReunioes();
     }
     try {
@@ -63,7 +68,7 @@ export const reunioesService = {
   },
 
   async createReuniao(data: { data: string; presidente: string; status?: 'em_andamento' | 'concluida' | 'arquivada' }): Promise<string> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       const list = demoService.getReunioes();
       const newId = 'demo_meet_' + Math.random().toString(36).substring(2, 9);
       const newItem: FirestoreReuniao = {
@@ -94,7 +99,7 @@ export const reunioesService = {
   },
 
   async addParteToReuniao(reuniaoId: string, parte: Omit<FirestoreParte, 'registradoEm'>): Promise<string> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       const list = demoService.getReunioes();
       const newId = 'demo_parte_' + Math.random().toString(36).substring(2, 9);
       const updated = list.map(m => {
@@ -128,7 +133,7 @@ export const reunioesService = {
   },
 
   async updateReuniaoStatus(reuniaoId: string, status: 'em_andamento' | 'concluida' | 'arquivada'): Promise<void> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       const list = demoService.getReunioes();
       const updated = list.map(m => m.id === reuniaoId ? { ...m, status } : m);
       demoService.saveReunioes(updated);
@@ -144,7 +149,7 @@ export const reunioesService = {
   },
 
   async updateReuniao(reuniaoId: string, data: Partial<Omit<FirestoreReuniao, 'id'>>): Promise<void> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       const list = demoService.getReunioes();
       const updated = list.map(m => m.id === reuniaoId ? { ...m, ...data } : m);
       demoService.saveReunioes(updated);
@@ -160,7 +165,7 @@ export const reunioesService = {
   },
 
   async fetchPartes(reuniaoId: string): Promise<FirestoreParte[]> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       const list = demoService.getReunioes();
       const m = list.find(reuniao => reuniao.id === reuniaoId);
       return m?.partes || [];
@@ -179,7 +184,7 @@ export const reunioesService = {
   },
 
   async deleteReuniao(reuniaoId: string): Promise<void> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       const list = demoService.getReunioes();
       const filtered = list.filter(m => m.id !== reuniaoId);
       demoService.saveReunioes(filtered);
@@ -202,7 +207,7 @@ export const reunioesService = {
   },
 
   async clearAllReunioes(): Promise<void> {
-    if (sessionStore.isDemo()) {
+    if (isDemoOrNoSave()) {
       demoService.saveReunioes([]);
       window.dispatchEvent(new Event('demoReunioesUpdated'));
       return;

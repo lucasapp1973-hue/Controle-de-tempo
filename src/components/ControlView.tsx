@@ -3,6 +3,7 @@ import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi
 import { TimerState, TimerMode, ScheduleItem, Brochura, Licao } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
+import DatabaseStatusIndicator from './DatabaseStatusIndicator';
 import { reunioesService } from '../services/reunioesService';
 import { participantesService } from '../services/participantesService';
 import { configuracoesService } from '../services/configuracoesService';
@@ -124,6 +125,7 @@ export default function ControlView({
   const [paramCorTempoNormal, setParamCorTempoNormal] = useState('#10b981');
   const [paramCorTempoAlerta, setParamCorTempoAlerta] = useState('#f59e0b');
   const [paramCorTempoEsgotado, setParamCorTempoEsgotado] = useState('#ef4444');
+  const [paramSalvarReuniao, setParamSalvarReuniao] = useState(true);
 
   useEffect(() => {
     if (systemConfig) {
@@ -132,6 +134,7 @@ export default function ControlView({
       setParamCorTempoNormal(systemConfig.corTempoNormal ?? '#10b981');
       setParamCorTempoAlerta(systemConfig.corTempoAlerta ?? '#f59e0b');
       setParamCorTempoEsgotado(systemConfig.corTempoEsgotado ?? '#ef4444');
+      setParamSalvarReuniao(systemConfig.salvarReuniao !== false);
     }
   }, [systemConfig]);
 
@@ -372,7 +375,8 @@ export default function ControlView({
         senhaControle: paramSenhaControle,
         corTempoNormal: paramCorTempoNormal,
         corTempoAlerta: paramCorTempoAlerta,
-        corTempoEsgotado: paramCorTempoEsgotado
+        corTempoEsgotado: paramCorTempoEsgotado,
+        salvarReuniao: paramSalvarReuniao
       });
       alert("Parâmetros do sistema salvos com sucesso no Firestore!");
       setShowParamsCollapse(false);
@@ -588,16 +592,19 @@ export default function ControlView({
             </div>
           </div>
 
-          {/* Wifi status on right */}
-          <div
-            className={`z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
-              isConnected
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
-            }`}
-          >
-            {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
-            <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
+          {/* Wifi & Database status on right */}
+          <div className="z-10 flex items-center gap-2">
+            <DatabaseStatusIndicator />
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
+                isConnected
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                  : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
+              }`}
+            >
+              {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
+              <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -693,6 +700,42 @@ export default function ControlView({
                       className="w-full bg-slate-950 border border-slate-855 text-xs rounded-xl py-2 px-3 focus:outline-none focus:ring-1 focus:ring-indigo-500 text-white font-mono text-center"
                     />
                   </div>
+                </div>
+
+                {/* SALVAR REUNIÃO TOGGLE CONTROL */}
+                <div className="space-y-2 pt-2 border-t border-slate-855/60">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                    Gravar Reunião no Firebase? (Modo Demonstração)
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setParamSalvarReuniao(true)}
+                      className={`py-2 px-3 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                        paramSalvarReuniao
+                          ? 'bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.15)] font-black'
+                          : 'bg-slate-950 border border-slate-900 text-slate-500 hover:text-slate-400'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${paramSalvarReuniao ? 'bg-emerald-400 animate-pulse' : 'bg-slate-700'}`} />
+                      Sim (Gravação Ativa)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setParamSalvarReuniao(false)}
+                      className={`py-2 px-3 rounded-xl font-bold text-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5 ${
+                        !paramSalvarReuniao
+                          ? 'bg-pink-500/10 border border-pink-500/40 text-pink-400 shadow-[0_0_12px_rgba(236,72,153,0.15)] font-black'
+                          : 'bg-slate-950 border border-slate-900 text-slate-500 hover:text-slate-400'
+                      }`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full ${!paramSalvarReuniao ? 'bg-pink-400 animate-pulse' : 'bg-slate-700'}`} />
+                      Não (Modo Demonstração)
+                    </button>
+                  </div>
+                  <p className="text-[9px] text-slate-500 leading-relaxed font-medium">
+                    * Ao escolher não salvar, a reunião funcionará idêntica em tempo real, porém todos os registros e relatórios de partes de oradores concluídos ficarão guardados apenas na memória da sessão atual do seu navegador, sem enviar nada ao banco de dados Firestore do Firebase.
+                  </p>
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-slate-855/60">

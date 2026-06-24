@@ -6,6 +6,7 @@ import DisplayView from './components/DisplayView';
 import ControlView from './components/ControlView';
 import HistoryView from './components/HistoryView';
 import PresidentCompactView from './components/PresidentCompactView';
+import DatabaseStatusIndicator from './components/DatabaseStatusIndicator';
 import { configuracoesService, SystemConfig, DEFAULT_CONFIG } from './services/configuracoesService';
 import { sessionStore } from './services/sessionStore';
 import { demoService } from './services/demoService';
@@ -416,6 +417,11 @@ export default function App() {
   return (
     <div className="fixed inset-0 w-full h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-950 text-slate-100 flex flex-col justify-between relative font-sans select-none">
       
+      {/* Discrete status indicators in the corner */}
+      <div className="absolute top-4 right-4 z-25 flex items-center gap-2">
+        <DatabaseStatusIndicator />
+      </div>
+
       {/* Glow Effects in background */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />

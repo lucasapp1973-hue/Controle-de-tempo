@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { TimerState } from '../types';
+import DatabaseStatusIndicator from './DatabaseStatusIndicator';
 
 interface DisplayViewProps {
   timerState: TimerState;
@@ -126,6 +127,11 @@ export default function DisplayView({ timerState, isConnected, onBack, systemCon
     >
       {/* Subtle overlay for physical display look */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-black/10 pointer-events-none" />
+
+      {/* Discrete status indicators in the corner */}
+      <div className="absolute top-4 right-4 z-20 opacity-30 hover:opacity-100 transition-opacity duration-300 flex items-center gap-2">
+        <DatabaseStatusIndicator />
+      </div>
 
       {/* Display is STRICTLY the elapsed time, huge, centered, no text layout */}
       <div className="flex items-center justify-center text-center w-full select-none z-10 px-4">

@@ -420,6 +420,16 @@ export default function App() {
       {/* Discrete status indicators in the corner aligned to header level */}
       <div className="absolute top-8 sm:top-10 right-4 sm:right-6 z-25 flex items-center gap-2">
         <DatabaseStatusIndicator />
+        <div
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors ${
+            isConnected
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+              : 'bg-red-500/10 border-red-500/20 text-red-500 animate-pulse'
+          }`}
+        >
+          {isConnected ? <Wifi className="w-3.5 h-3.5 text-emerald-450" /> : <WifiOff className="w-3.5 h-3.5 text-red-450" />}
+          <span className="hidden sm:inline">{isConnected ? 'ONLINE' : 'DESCONECTADO'}</span>
+        </div>
       </div>
 
       {/* Glow Effects in background */}

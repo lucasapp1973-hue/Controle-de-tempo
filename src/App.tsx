@@ -417,8 +417,8 @@ export default function App() {
   return (
     <div className="fixed inset-0 w-full h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-950 text-slate-100 flex flex-col justify-between relative font-sans select-none">
       
-      {/* Discrete status indicators in the corner */}
-      <div className="absolute top-4 right-4 z-25 flex items-center gap-2">
+      {/* Discrete status indicators in the corner aligned to header level */}
+      <div className="absolute top-8 sm:top-10 right-4 sm:right-6 z-25 flex items-center gap-2">
         <DatabaseStatusIndicator />
       </div>
 

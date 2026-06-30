@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { TimerState, TimerMode, ScheduleItem } from '../types';
-import { sessionStore } from '../services/sessionStore';
+import { sessionStore, congregationStore } from '../services/sessionStore';
 
 export function useSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [sessionType, setSessionType] = useState(sessionStore.getSessionType());
+  const [congregation, setCongregation] = useState(congregationStore.getCongregation());
   const [timerState, setTimerState] = useState<TimerState>({
     isRunning: false,
     mode: 'regressive',
@@ -25,21 +26,27 @@ export function useSocket() {
     const handleSessionChanged = () => {
       setSessionType(sessionStore.getSessionType());
     };
+    const handleCongregationChanged = () => {
+      setCongregation(congregationStore.getCongregation());
+    };
     window.addEventListener('sessionTypeChanged', handleSessionChanged);
+    window.addEventListener('congregationChanged', handleCongregationChanged);
     return () => {
       window.removeEventListener('sessionTypeChanged', handleSessionChanged);
+      window.removeEventListener('congregationChanged', handleCongregationChanged);
     };
   }, []);
 
   useEffect(() => {
     const isDemoMode = sessionType === 'demo';
-    // Automatically connect to the host of the current page with demo parameter
+    // Automatically connect to the host of the current page with demo and congregation parameters
     const socket = io(window.location.origin, {
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
       query: {
         demo: isDemoMode ? 'true' : 'false',
+        congregation: congregation,
       },
     });
 
@@ -63,7 +70,7 @@ export function useSocket() {
     return () => {
       socket.disconnect();
     };
-  }, [sessionType]);
+  }, [sessionType, congregation]);
 
   const reconnect = useCallback(() => {
     if (socketRef.current) {

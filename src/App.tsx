@@ -8,7 +8,7 @@ import HistoryView from './components/HistoryView';
 import PresidentCompactView from './components/PresidentCompactView';
 import DatabaseStatusIndicator from './components/DatabaseStatusIndicator';
 import { configuracoesService, SystemConfig, DEFAULT_CONFIG } from './services/configuracoesService';
-import { sessionStore } from './services/sessionStore';
+import { sessionStore, congregationStore } from './services/sessionStore';
 import { demoService } from './services/demoService';
 
 export default function App() {
@@ -44,23 +44,33 @@ export default function App() {
   const [litCard, setLitCard] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
 
+  // Congregation Isolation States
+  const [congregation, setCongregation] = useState(congregationStore.getCongregation());
+  const [showCongregationPrompt, setShowCongregationPrompt] = useState(false);
+  const [congregationInput, setCongregationInput] = useState('');
+
   useEffect(() => {
     const handleSessionChanged = () => {
       setIsDemo(sessionStore.isDemo());
     };
+    const handleCongregationChanged = () => {
+      setCongregation(congregationStore.getCongregation());
+    };
     window.addEventListener('sessionTypeChanged', handleSessionChanged);
+    window.addEventListener('congregationChanged', handleCongregationChanged);
     return () => {
       window.removeEventListener('sessionTypeChanged', handleSessionChanged);
+      window.removeEventListener('congregationChanged', handleCongregationChanged);
     };
   }, []);
 
   useEffect(() => {
-    // Subscribe to configurations from Firestore or Demo Store based on current isDemo state
+    // Subscribe to configurations from Firestore or Demo Store based on current isDemo and congregation state
     const unsubscribe = configuracoesService.subscribeConfig((config) => {
       setSystemConfig(config);
     });
     return () => unsubscribe();
-  }, [isDemo]);
+  }, [isDemo, congregation]);
 
   const isAuthorized = () => {
     const authTimestamp = localStorage.getItem('control_auth_timestamp');
@@ -417,6 +427,22 @@ export default function App() {
   return (
     <div className="fixed inset-0 w-full h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-950 text-slate-100 flex flex-col justify-between relative font-sans select-none">
       
+      {/* Discrete congregation indicator in the left corner */}
+      <div className="absolute top-8 sm:top-10 left-4 sm:left-6 z-25 flex items-center gap-2">
+        <button
+          onClick={() => {
+            setCongregationInput(congregation === 'default' ? '' : congregation);
+            setShowCongregationPrompt(true);
+          }}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border bg-slate-900 border-slate-850 text-slate-300 hover:text-white hover:border-indigo-500/50 transition-colors cursor-pointer shadow-md"
+        >
+          <span className="text-[13px]">📍</span>
+          <span>
+            {congregation === 'default' ? 'CONECTAR CONGREGAÇÃO' : congregation.toUpperCase()}
+          </span>
+        </button>
+      </div>
+
       {/* Discrete status indicators in the corner aligned to header level */}
       <div className="absolute top-8 sm:top-10 right-4 sm:right-6 z-25 flex items-center gap-2">
         <DatabaseStatusIndicator />
@@ -488,6 +514,17 @@ export default function App() {
             <p className="text-sm text-slate-400 max-w-sm text-center leading-relaxed font-light tracking-wide px-2">
               Controle, monitore e sincronize o tempo de discursos e reuniões em múltiplos dispositivos em tempo real com latência zero.
             </p>
+
+            {congregation !== 'default' && (
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="mt-4 px-4 py-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 rounded-full text-[11px] font-bold tracking-wider uppercase flex items-center gap-1.5 shadow-lg shadow-indigo-950/20"
+              >
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" />
+                📍 {congregation}
+              </motion.div>
+            )}
           </motion.div>
         </header>
 
@@ -677,6 +714,78 @@ export default function App() {
               >
                 Confirmar Senha
               </button>
+            </form>
+          </motion.div>
+        </div>
+      )}
+
+      {showCongregationPrompt && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl relative animate-fade-in"
+          >
+            <button
+              onClick={() => setShowCongregationPrompt(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="text-center space-y-2">
+              <div className="mx-auto w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 text-xl">
+                📍
+              </div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-white">Sua Congregação</h3>
+              <p className="text-xs text-slate-450 leading-relaxed">
+                Digite o nome da sua congregação para criar um ambiente de cronometragem exclusivo e 100% isolado das demais congregações.
+              </p>
+            </div>
+            
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const target = congregationInput.trim();
+                congregationStore.setCongregation(target || 'default');
+                setShowCongregationPrompt(false);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1">
+                <input
+                  type="text"
+                  placeholder="Ex: Central, Betel, Lapa"
+                  value={congregationInput}
+                  onChange={(e) => setCongregationInput(e.target.value)}
+                  autoFocus
+                  maxLength={40}
+                  className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 px-4 text-center font-sans text-lg font-semibold text-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 placeholder:text-slate-800"
+                />
+              </div>
+              
+              <p className="text-[10px] text-slate-500 text-center leading-tight">
+                Compartilhe o link gerado com outros dispositivos para que todos visualizem e controlem o mesmo cronômetro em tempo real!
+              </p>
+
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    congregationStore.setCongregation('default');
+                    setShowCongregationPrompt(false);
+                  }}
+                  className="flex-1 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-slate-400 rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all cursor-pointer active:scale-95"
+                >
+                  Usar Padrão
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-505 text-white rounded-xl font-bold uppercase text-[10px] tracking-wider transition-all cursor-pointer active:scale-95"
+                >
+                  Conectar
+                </button>
+              </div>
             </form>
           </motion.div>
         </div>

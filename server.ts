@@ -94,24 +94,31 @@ const initialDemoState = (): TimerState => ({
   isStopped: false
 });
 
-let realSession: TimerSession = {
-  state: initialRealState,
-  interval: null
-};
+const realSessions: Record<string, TimerSession> = {};
+const demoSessions: Record<string, TimerSession> = {};
 
-let demoSession: TimerSession = {
-  state: initialDemoState(),
-  interval: null
-};
-
-function broadcastState(isDemo: boolean) {
-  const roomName = isDemo ? 'demo_room' : 'real_room';
-  const state = isDemo ? demoSession.state : realSession.state;
-  io.to(roomName).emit('timer:state', state);
+function getSession(congregationId: string, isDemo: boolean): TimerSession {
+  const sessions = isDemo ? demoSessions : realSessions;
+  const key = congregationId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '_') || 'default';
+  if (!sessions[key]) {
+    sessions[key] = {
+      state: isDemo ? initialDemoState() : JSON.parse(JSON.stringify(initialRealState)),
+      interval: null
+    };
+  }
+  return sessions[key];
 }
 
-function startTick(isDemo: boolean) {
-  const session = isDemo ? demoSession : realSession;
+function broadcastState(congregationId: string, isDemo: boolean) {
+  const key = congregationId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '_') || 'default';
+  const roomName = isDemo ? `demo_room_${key}` : `real_room_${key}`;
+  const session = getSession(key, isDemo);
+  io.to(roomName).emit('timer:state', session.state);
+}
+
+function startTick(congregationId: string, isDemo: boolean) {
+  const key = congregationId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '_') || 'default';
+  const session = getSession(key, isDemo);
   if (session.interval) return;
   
   session.interval = setInterval(() => {
@@ -128,15 +135,16 @@ function startTick(isDemo: boolean) {
       
       session.state.elapsedTime++;
       session.state.lastUpdated = Date.now();
-      broadcastState(isDemo);
+      broadcastState(key, isDemo);
     } else {
-      stopTick(isDemo);
+      stopTick(key, isDemo);
     }
   }, 1000);
 }
 
-function stopTick(isDemo: boolean) {
-  const session = isDemo ? demoSession : realSession;
+function stopTick(congregationId: string, isDemo: boolean) {
+  const key = congregationId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '_') || 'default';
+  const session = getSession(key, isDemo);
   if (session.interval) {
     clearInterval(session.interval);
     session.interval = null;
@@ -146,8 +154,11 @@ function stopTick(isDemo: boolean) {
 // Socket.IO Connection Logic
 io.on('connection', (socket) => {
   const isDemo = socket.handshake.query.demo === 'true';
-  const session = isDemo ? demoSession : realSession;
-  const roomName = isDemo ? 'demo_room' : 'real_room';
+  const congregationId = (socket.handshake.query.congregation as string) || 'default';
+  const key = congregationId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '_') || 'default';
+  
+  const session = getSession(key, isDemo);
+  const roomName = isDemo ? `demo_room_${key}` : `real_room_${key}`;
   
   socket.join(roomName);
 
@@ -159,8 +170,8 @@ io.on('connection', (socket) => {
     session.state.isRunning = true;
     session.state.isStopped = false;
     session.state.lastUpdated = Date.now();
-    startTick(isDemo);
-    broadcastState(isDemo);
+    startTick(key, isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Pause timer
@@ -168,8 +179,8 @@ io.on('connection', (socket) => {
     session.state.isRunning = false;
     session.state.isStopped = true;
     session.state.lastUpdated = Date.now();
-    stopTick(isDemo);
-    broadcastState(isDemo);
+    stopTick(key, isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Resume timer
@@ -177,15 +188,15 @@ io.on('connection', (socket) => {
     session.state.isRunning = true;
     session.state.isStopped = false;
     session.state.lastUpdated = Date.now();
-    startTick(isDemo);
-    broadcastState(isDemo);
+    startTick(key, isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Reset timer
   socket.on('timer:reset', () => {
     session.state.isRunning = false;
     session.state.isStopped = false;
-    stopTick(isDemo);
+    stopTick(key, isDemo);
     if (session.state.mode === 'regressive') {
       session.state.currentTime = session.state.initialDuration;
     } else {
@@ -193,13 +204,13 @@ io.on('connection', (socket) => {
     }
     session.state.elapsedTime = 0;
     session.state.lastUpdated = Date.now();
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Set timer configuration
   socket.on('timer:set', (config: { minutes: number; seconds: number; mode: 'progressive' | 'regressive' }) => {
     session.state.isRunning = false;
-    stopTick(isDemo);
+    stopTick(key, isDemo);
     session.state.mode = config.mode;
     session.state.initialDuration = config.minutes * 60 + config.seconds;
     
@@ -211,7 +222,7 @@ io.on('connection', (socket) => {
     
     session.state.elapsedTime = 0;
     session.state.lastUpdated = Date.now();
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Schedule management: Add
@@ -241,7 +252,7 @@ io.on('connection', (socket) => {
       session.state.elapsedTime = 0;
     }
     
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Schedule management: Edit
@@ -257,7 +268,7 @@ io.on('connection', (socket) => {
           session.state.currentTime = session.state.mode === 'regressive' ? updated.expectedTime : 0;
         }
       }
-      broadcastState(isDemo);
+      broadcastState(key, isDemo);
     }
   });
 
@@ -268,7 +279,7 @@ io.on('connection', (socket) => {
     // If the active item was removed, fallback to the next pending or null
     if (session.state.activeId === id) {
       session.state.isRunning = false;
-      stopTick(isDemo);
+      stopTick(key, isDemo);
       
       const nextPending = session.state.schedule.find(i => i.status === 'pending');
       if (nextPending) {
@@ -284,19 +295,19 @@ io.on('connection', (socket) => {
       session.state.elapsedTime = 0;
     }
     
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Schedule management: Reorder
   socket.on('schedule:reorder', (newList: ScheduleItem[]) => {
     session.state.schedule = newList;
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Schedule management: Activate item manually
   socket.on('schedule:activate', (id: string) => {
     session.state.isRunning = false;
-    stopTick(isDemo);
+    stopTick(key, isDemo);
     
     session.state.schedule = session.state.schedule.map(item => {
       if (item.id === id) {
@@ -317,7 +328,7 @@ io.on('connection', (socket) => {
       session.state.elapsedTime = 0;
     }
     
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Schedule management: Complete item
@@ -331,7 +342,7 @@ io.on('connection', (socket) => {
 
     session.state.isRunning = false;
     session.state.isStopped = true;
-    stopTick(isDemo);
+    stopTick(key, isDemo);
 
     // 2. Automatically select next participant (status = 'pending')
     const nextPending = session.state.schedule.find(i => i.status === 'pending');
@@ -350,13 +361,13 @@ io.on('connection', (socket) => {
     }
     
     session.state.elapsedTime = 0;
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Schedule management: Reset all to pending
   socket.on('schedule:reset', () => {
     session.state.isRunning = false;
-    stopTick(isDemo);
+    stopTick(key, isDemo);
     
     if (isDemo) {
       session.state.schedule = getDemoMockSchedule();
@@ -380,7 +391,7 @@ io.on('connection', (socket) => {
     }
     
     session.state.elapsedTime = 0;
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Register and archive completed meeting
@@ -420,7 +431,7 @@ io.on('connection', (socket) => {
 
     // Reset current active states and clear schedule
     session.state.isRunning = false;
-    stopTick(isDemo);
+    stopTick(key, isDemo);
     
     if (isDemo) {
       session.state.schedule = getDemoMockSchedule();
@@ -436,21 +447,21 @@ io.on('connection', (socket) => {
     session.state.elapsedTime = 0;
     session.state.lastUpdated = Date.now();
 
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Delete a specific completed meeting
   socket.on('meeting:delete', (data: { id: string }) => {
     if (session.state.meetings) {
       session.state.meetings = session.state.meetings.filter(m => m.id !== data.id);
-      broadcastState(isDemo);
+      broadcastState(key, isDemo);
     }
   });
 
   // Clear all archived meetings
   socket.on('meetings:clear', () => {
     session.state.meetings = [];
-    broadcastState(isDemo);
+    broadcastState(key, isDemo);
   });
 
   // Handle manual sync request
@@ -471,7 +482,9 @@ app.get('/api/health', (req, res) => {
 
 app.get('/api/timer-state', (req, res) => {
   const isDemo = req.query.demo === 'true';
-  res.json(isDemo ? demoSession.state : realSession.state);
+  const congregationId = (req.query.congregation as string) || 'default';
+  const key = congregationId.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '_') || 'default';
+  res.json(getSession(key, isDemo).state);
 });
 
 // Vite middleware setup

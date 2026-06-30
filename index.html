@@ -12,6 +12,20 @@
     <meta name="theme-color" content="#020617" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.json" />
+    <style>
+      @keyframes splash-pulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(79, 70, 229, 0.3); }
+        50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(16, 185, 129, 0.5); }
+      }
+      @keyframes splash-spin-slow {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes splash-spin-fast {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
@@ -159,7 +173,6 @@
       <div style="
         height: 1px;
         width: 48px;
-        background: gradient;
         background-image: linear-gradient(to right, transparent, #4f46e5, transparent);
         margin: 10px 0;
       "></div>
@@ -187,21 +200,6 @@
       </div>
     </div>
 
-    <style>
-      @keyframes splash-pulse {
-        0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(79, 70, 229, 0.3); }
-        50% { transform: scale(1.05); box-shadow: 0 0 35px rgba(16, 185, 129, 0.5); }
-      }
-      @keyframes splash-spin-slow {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      @keyframes splash-spin-fast {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
-
     <script>
       // Garante que a splash screen fique visivel por exatamente 3 segundos antes do fade-out
       setTimeout(function() {
@@ -216,7 +214,7 @@
         }
       }, 3000);
     </script>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

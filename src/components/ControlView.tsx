@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, FormEvent } from 'react';
-import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User, BookOpen, Heart } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, LogOut, DoorOpen, Smartphone, Wifi, WifiOff, Clock, Plus, Trash2, Edit2, ArrowUp, ArrowDown, Save, X, Check, ClipboardList, ListRestart, ChevronDown, Settings, User, BookOpen, Heart, RefreshCw, Database } from 'lucide-react';
 import { TimerState, TimerMode, ScheduleItem, Brochura, Licao } from '../types';
 import SystemModuleReturnIcon, { AnalogueClock } from './SystemModuleReturnIcon';
 import TimerCard from './TimerCard';
@@ -7,8 +7,9 @@ import DatabaseStatusIndicator from './DatabaseStatusIndicator';
 import { reunioesService } from '../services/reunioesService';
 import { participantesService } from '../services/participantesService';
 import { configuracoesService } from '../services/configuracoesService';
-import { sessionStore } from '../services/sessionStore';
+import { sessionStore, congregationStore } from '../services/sessionStore';
 import { licoesService } from '../services/licoesService';
+import { integracaoService } from '../services/integracaoService';
 import { LicaoMelhore } from '../data/licoes';
 
 const NOMES_OPTIONS = [
@@ -272,6 +273,82 @@ export default function ControlView({
   const [isAvaliada, setIsAvaliada] = useState(false);
   const [selectedBrochuraId, setSelectedBrochuraId] = useState<string>('melhore');
   const [selectedLicao, setSelectedLicao] = useState<number>(1);
+
+  // Ecosystem Sync integration state
+  const [isSyncingEcosystem, setIsSyncingEcosystem] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{ status: 'idle' | 'success' | 'info' | 'error'; message: string }>({ status: 'idle', message: '' });
+  const [detectedMeeting, setDetectedMeeting] = useState<{ isMeetingDay: boolean; meetingType: 'vida_e_ministerio' | 'fim_de_semana' | null; dayName: string } | null>(null);
+
+  useEffect(() => {
+    const cong = congregationStore.getCongregation();
+    const result = integracaoService.isTodayMeetingDay(cong);
+    setDetectedMeeting(result);
+  }, [timerState.schedule]);
+
+  const handleImportFromEcosystem = async (useTemplateFallback = true) => {
+    const cong = congregationStore.getCongregation();
+    if (!cong || cong === 'default') {
+      setSyncFeedback({
+        status: 'error',
+        message: 'Por favor, conecte a sua Congregação primeiro no portal antes de importar.'
+      });
+      return;
+    }
+
+    setIsSyncingEcosystem(true);
+    setSyncFeedback({ status: 'info', message: 'Sincronizando com o ecossistema...' });
+
+    try {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const result = await integracaoService.fetchEcosystemSchedule(cong, todayStr);
+
+      if (result && result.partes.length > 0) {
+        reorderSchedule(result.partes);
+        if (result.presidente) {
+          setPresidente(result.presidente);
+          if (currentMeetingId) {
+            await reunioesService.updateReuniao(currentMeetingId, { presidente: result.presidente });
+          }
+        }
+        setSyncFeedback({
+          status: 'success',
+          message: `Sucesso! Programação oficial importada do Firestore para ${cong.toUpperCase()} (${result.partes.length} partes).`
+        });
+        setIsSyncingEcosystem(false);
+        return;
+      }
+
+      if (useTemplateFallback) {
+        const meetingInfo = integracaoService.isTodayMeetingDay(cong);
+        const mType = meetingInfo.meetingType || 'vida_e_ministerio';
+        const fallback = integracaoService.getMockScheduleTemplate(mType, cong);
+        
+        reorderSchedule(fallback.partes);
+        setPresidente(fallback.presidente);
+        if (currentMeetingId) {
+          await reunioesService.updateReuniao(currentMeetingId, { presidente: fallback.presidente });
+        }
+
+        setSyncFeedback({
+          status: 'success',
+          message: `Gerenciador: Nenhum cadastro oficial encontrado para hoje (${todayStr}) no Firestore. Carregado modelo inteligente de ${mType === 'vida_e_ministerio' ? 'Vida e Ministério' : 'Discurso e Sentinela'} para ${cong.toUpperCase()}!`
+        });
+      } else {
+        setSyncFeedback({
+          status: 'error',
+          message: `Nenhuma programação oficial do Gerenciador cadastrada para hoje para ${cong.toUpperCase()}.`
+        });
+      }
+    } catch (error) {
+      console.error('Ecosystem integration error:', error);
+      setSyncFeedback({
+        status: 'error',
+        message: 'Conexão falhou ao consultar banco de dados compartilhado.'
+      });
+    } finally {
+      setIsSyncingEcosystem(false);
+    }
+  };
 
   // Inline Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -940,23 +1017,86 @@ export default function ControlView({
               <ClipboardList className="w-5 h-5 text-indigo-400" />
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-300">Lista da Programação</h2>
             </div>
-            {schedule.length > 0 && (
+            
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={resetSchedule}
-                className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white transition-colors active:scale-95 bg-slate-900 border border-slate-800 py-1.5 px-2.5 rounded-lg cursor-pointer"
-                title="Reinicia todo o andamento das partes anteriores"
+                disabled={isSyncingEcosystem}
+                onClick={() => handleImportFromEcosystem(true)}
+                className="flex items-center gap-1.5 text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-500/10 border border-indigo-500/20 py-1.5 px-2.5 rounded-lg cursor-pointer"
+                title="Sincronizar programação do Gerenciador/Agenda"
               >
-                <ListRestart className="w-3.5 h-3.5" />
-                Reiniciar Programação
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingEcosystem ? 'animate-spin' : ''}`} />
+                Sincronizar
               </button>
-            )}
+              {schedule.length > 0 && (
+                <button
+                  type="button"
+                  onClick={resetSchedule}
+                  className="flex items-center gap-1 text-xs font-semibold text-slate-400 hover:text-white transition-colors active:scale-95 bg-slate-900 border border-slate-800 py-1.5 px-2.5 rounded-lg cursor-pointer"
+                  title="Reinicia todo o andamento das partes anteriores"
+                >
+                  <ListRestart className="w-3.5 h-3.5" />
+                  Reiniciar
+                </button>
+              )}
+            </div>
           </div>
+
+          {syncFeedback.status !== 'idle' && (
+            <div className={`p-3 rounded-xl text-xs font-semibold flex items-center justify-between gap-2.5 border transition-all ${
+              syncFeedback.status === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+              syncFeedback.status === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+              'bg-blue-500/10 border-blue-500/20 text-blue-400'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span>{syncFeedback.status === 'success' ? '✨' : syncFeedback.status === 'error' ? '⚠️' : 'ℹ️'}</span>
+                <span>{syncFeedback.message}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSyncFeedback({ status: 'idle', message: '' })}
+                className="text-[10px] hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           <div className="space-y-2.5">
             {schedule.length === 0 ? (
-              <div className="text-center py-6 text-slate-500 text-sm">
-                Nenhum participante cadastrado na programação. Use o formulário abaixo para cadastrar!
+              <div className="flex flex-col items-center justify-center p-6 bg-slate-900/25 border border-slate-900/60 rounded-xl space-y-4 text-center">
+                <Database className="w-8 h-8 text-indigo-400 animate-pulse" />
+                
+                {detectedMeeting && detectedMeeting.isMeetingDay ? (
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-bold text-white">
+                      📅 Reunião Detectada para Hoje ({detectedMeeting.dayName})
+                    </h3>
+                    <p className="text-[11px] text-slate-400 max-w-md leading-relaxed mx-auto">
+                      Identificamos que hoje é dia de reunião para a congregação <strong className="text-indigo-400">{congregationStore.getCongregation().toUpperCase()}</strong>! Quer carregar a programação oficial do Gerenciador/Agenda automaticamente?
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-semibold text-slate-300">
+                      Nenhuma programação carregada para hoje
+                    </h3>
+                    <p className="text-[11px] text-slate-400 max-w-md leading-relaxed mx-auto">
+                      Você pode sincronizar a programação automaticamente do ecossistema de aplicativos ou cadastrar as partes manualmente abaixo.
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  disabled={isSyncingEcosystem}
+                  onClick={() => handleImportFromEcosystem(true)}
+                  className="py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl font-bold text-xs tracking-wide shadow-lg hover:shadow-indigo-650/15 cursor-pointer flex items-center gap-1.5 active:scale-95 transition-all"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingEcosystem ? 'animate-spin' : ''}`} />
+                  {isSyncingEcosystem ? 'Sincronizando...' : '✨ Sincronizar Programação'}
+                </button>
               </div>
             ) : (
               schedule.map((item, idx) => {

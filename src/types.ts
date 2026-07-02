@@ -60,3 +60,22 @@ export interface TimerConfig {
   mode: TimerMode;
 }
 
+export interface EsbocoBlock {
+  id: string;
+  type: 'title' | 'heading' | 'paragraph' | 'comment' | 'script';
+  content: string;
+  allocatedTime?: number; // in seconds, optional for script mode
+  elapsedTime?: number; // in seconds
+  isCompleted?: boolean;
+}
+
+export interface Esboco {
+  id: string;
+  title: string;
+  speaker: string;
+  duration: number; // total expected time in seconds
+  congregation: string;
+  blocks: EsbocoBlock[];
+  lastSaved: string;
+}
+

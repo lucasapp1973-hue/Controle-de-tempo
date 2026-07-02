@@ -1,5 +1,5 @@
 import { useState, useEffect, FormEvent } from 'react';
-import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar, X, User } from 'lucide-react';
+import { Tv, Smartphone, Wifi, WifiOff, RefreshCw, Activity, Laptop, ClipboardList, Calendar, X, User, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useSocket } from './hooks/useSocket';
 import DisplayView from './components/DisplayView';
@@ -7,6 +7,7 @@ import ControlView from './components/ControlView';
 import HistoryView from './components/HistoryView';
 import PresidentCompactView from './components/PresidentCompactView';
 import DatabaseStatusIndicator from './components/DatabaseStatusIndicator';
+import PortaEsbocoView from './components/PortaEsbocoView';
 import { configuracoesService, SystemConfig, DEFAULT_CONFIG } from './services/configuracoesService';
 import { sessionStore, congregationStore } from './services/sessionStore';
 import { demoService } from './services/demoService';
@@ -34,8 +35,8 @@ export default function App() {
     clearAllMeetings,
   } = useSocket();
 
-  // App mode: portal (selection), display, control, superintendent (presidente), or history
-  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent' | 'history'>('portal');
+  // App mode: portal (selection), display, control, superintendent (presidente), history, or porta-esboco
+  const [appMode, setAppMode] = useState<'portal' | 'display' | 'control' | 'superintendent' | 'history' | 'porta-esboco'>('portal');
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [passwordError, setPasswordError] = useState('');
@@ -199,6 +200,8 @@ export default function App() {
         setAppMode('control');
       } else if (m === 'history') {
         setAppMode('history');
+      } else if (m === 'porta-esboco') {
+        setAppMode('porta-esboco');
       } else {
         setAppMode('portal');
         exitFullscreen();
@@ -277,7 +280,7 @@ export default function App() {
   };
 
   // Update URL on state change to allow direct bookmarking
-  const selectMode = (mode: 'display' | 'control' | 'superintendent' | 'history') => {
+  const selectMode = (mode: 'display' | 'control' | 'superintendent' | 'history' | 'porta-esboco') => {
     setAppMode(mode);
     const url = new URL(window.location.href);
     url.searchParams.set('mode', mode);
@@ -417,6 +420,35 @@ export default function App() {
             onBack={handleBackToPortal}
             deleteMeeting={deleteMeeting}
             clearAllMeetings={clearAllMeetings}
+          />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Render Porta-Esboço View
+  if (appMode === 'porta-esboco') {
+    return (
+      <motion.div
+        className="fixed inset-0 w-screen h-screen h-[100dvh] overflow-hidden flex flex-col bg-slate-950 z-30"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {renderDemoBanner()}
+        <div className="flex-1 overflow-y-auto">
+          <PortaEsbocoView
+            timerState={timerState}
+            isConnected={isConnected}
+            onBack={handleBackToPortal}
+            startTimer={startTimer}
+            pauseTimer={pauseTimer}
+            resumeTimer={resumeTimer}
+            resetTimer={resetTimer}
+            setTimer={setTimer}
+            completeScheduleItem={completeScheduleItem}
+            activateScheduleItem={activateScheduleItem}
           />
         </div>
       </motion.div>
@@ -589,6 +621,15 @@ export default function App() {
               color: 'from-blue-500/30 to-indigo-500/30',
               iconColor: 'text-indigo-400',
               iconBg: 'bg-indigo-950/40 border-indigo-550/20'
+            },
+            {
+              id: 'porta-esboco',
+              label: 'Porta-Esboço',
+              action: () => selectMode('porta-esboco'),
+              icon: BookOpen,
+              color: 'from-violet-500/30 to-fuchsia-500/30',
+              iconColor: 'text-violet-400',
+              iconBg: 'bg-violet-950/40 border-violet-500/20'
             },
             {
               id: 'history',

@@ -1,6 +1,6 @@
 {
   "name": "Sync",
-  "description": "Sistema de cronometragem sincronizada em tempo real para discursos e reuniões com latência zero.",
+  "description": "Sistema de cronometragem sincronizada em tempo real com latência zero, integrando cronômetros, histórico de reuniões e o módulo inteligente Porta-Esboço para oradores.",
   "requestFramePermissions": ["picture-in-picture"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
